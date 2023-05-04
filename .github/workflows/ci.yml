@@ -1,0 +1,26 @@
+name: ci
+on: [push]
+concurrency: checks-${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: magnetikonline/action-golang-cache@v4
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v3
+        with:
+          cache: "npm"
+          node-version: latest
+
+      - uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-${{ runner.arch }}-node-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci -f
+      - run: npm run build

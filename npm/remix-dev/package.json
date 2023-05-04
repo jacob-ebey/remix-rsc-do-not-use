@@ -29,7 +29,8 @@
   },
   "optionalDependencies": {
     "@remix-run/dev-darwin-arm64": "*",
-    "@remix-run/dev-darwin-x64": "*"
+    "@remix-run/dev-darwin-x64": "*",
+    "@remix-run/dev-linux-x64": "*"
   },
   "engines": {
     "node": ">=16"

@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "workspaces": [
+    "fixture",
+    "internal/module_graph",
+    "npm/*"
+  ],
+  "scripts": {
+    "build": "npm run build:internal && npm run build:remix && npm run build:fixture",
+    "build:internal": "npm run build -w internal/module_graph",
+    "build:remix": "npm run build -w npm/remix -w npm/remix-darwin-arm64 -w npm/remix-darwin-x64",
+    "build:fixture": "npm run build -w fixture"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

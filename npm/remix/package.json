@@ -1,0 +1,30 @@
+{
+  "name": "remix",
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "remix": "bin/remix.cjs"
+  },
+  "exports": {
+    "./browser-runtime": {
+      "default": "./dist/browser-runtime.js",
+      "types": "./dist/browser-runtime.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^16",
+    "typescript": "^5.0.4"
+  },
+  "optionalDependencies": {
+    "@remix/darwin-arm64": "*"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

@@ -1,0 +1,15 @@
+# General
+.DS_Store
+*.log
+dist/
+build/
+
+# Node
+node_modules
+*.js
+*.map
+
+# Golang
+*.exe
+*.exe~
+

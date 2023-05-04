@@ -1,0 +1,23 @@
+{
+  "name": "@remix/darwin-arm64",
+  "version": "0.0.0",
+  "files": ["dist"],
+  "main": "dist/remix",
+  "scripts": {
+    "build": "cross-env GOOS=darwin GOARCH=arm64 go build -ldflags \"-s -w\" -o dist/remix ../../cmd/remix/main.go && file-size dist/remix"
+  },
+  "devDependencies": {
+    "@fast-remix/internal__module_graph": "*",
+    "cross-env": "^7.0.3",
+    "tiny-file-size": "^0.3.5"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ]
+}

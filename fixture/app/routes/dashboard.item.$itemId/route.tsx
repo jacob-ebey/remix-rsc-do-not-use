@@ -1,3 +1,3 @@
-export default function DashboardItem() {
+export function Component() {
   return <h2>Item</h2>;
 }

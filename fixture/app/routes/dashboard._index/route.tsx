@@ -1,3 +1,3 @@
-export default function DashboardLanding() {
+export function Component() {
   return <h2>Landing</h2>;
 }

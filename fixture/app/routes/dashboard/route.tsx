@@ -1,6 +1,6 @@
 import * as Remix from "@remix-run/react";
 
-export default function Dashboard() {
+export function Component() {
   return (
     <>
       <h1>Home</h1>

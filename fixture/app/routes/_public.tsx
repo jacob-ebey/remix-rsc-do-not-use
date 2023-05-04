@@ -1,7 +1,6 @@
-"use client";
 import * as Remix from "@remix-run/react";
 
-export default function PublicLayout() {
+export function Component() {
   return (
     <>
       <h1>Public</h1>

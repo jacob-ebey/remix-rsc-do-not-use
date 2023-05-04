@@ -1,6 +1,7 @@
 package bundle
 
 import (
+	"fmt"
 	"path"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -19,8 +20,9 @@ func newModuleResolverPlugin(resolver module_graph.Resolver) esbuild.Plugin {
 				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
 					if path.IsAbs(args.Path) {
 						return esbuild.OnResolveResult{
-							Path:        args.Path,
-							SideEffects: esbuild.SideEffectsTrue,
+							Path: args.Path,
+							// TODO: Detect side-effects
+							SideEffects: esbuild.SideEffectsFalse,
 						}, nil
 					}
 
@@ -32,6 +34,44 @@ func newModuleResolverPlugin(resolver module_graph.Resolver) esbuild.Plugin {
 					return esbuild.OnResolveResult{
 						Path: resolved,
 						// TODO: Detect side-effects
+						SideEffects: esbuild.SideEffectsFalse,
+					}, nil
+				},
+			)
+		},
+	}
+}
+
+func newServerModulesClientPlugin(serverModules map[string]module_graph.Module) esbuild.Plugin {
+	return esbuild.Plugin{
+		Name: "server-modules",
+		Setup: func(build esbuild.PluginBuild) {
+			build.OnLoad(
+				esbuild.OnLoadOptions{
+					Filter: ".*",
+				},
+				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+					serverModule, ok := serverModules[args.Path]
+					if !ok {
+						return esbuild.OnLoadResult{}, nil
+					}
+
+					contents := `const SERVER_REFERENCE = Symbol.for("react.server.reference");`
+
+					for _, export := range serverModule.Exports {
+						id := fmt.Sprintf(`%s#%s`, serverModule.Hash, export)
+						reference := fmt.Sprintf(`{ $$typeof: SERVER_REFERENCE, $$id: %q }`, id)
+
+						if export == "default" {
+							contents += fmt.Sprintf(`export default %s;`, reference)
+						} else {
+							contents += fmt.Sprintf(`export const %s = %s;`, export, reference)
+						}
+					}
+
+					return esbuild.OnLoadResult{
+						Contents: &contents,
+						Loader:   esbuild.LoaderJS,
 					}, nil
 				},
 			)

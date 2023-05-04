@@ -4,13 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/jacob-ebey/fast-remix/internal/module_graph"
 	"github.com/jacob-ebey/fast-remix/pkg/api"
-	"github.com/ryanuber/go-glob"
 )
 
 func main() {
@@ -84,7 +84,7 @@ func main() {
 
 	routes, err := api.FlatRoutes(appDirectory)
 	if err != nil {
-		fmt.Println("could not load routes from app directory")
+		fmt.Println("could not load routes from app directory:", err.Error())
 		os.Exit(1)
 	}
 
@@ -117,7 +117,7 @@ func main() {
 		err := api.Build(api.BuildOptions{
 			BrowserEntry:     browserEntry,
 			BrowserOutput:    browserOutput,
-			Production:       true,
+			Production:       false,
 			PublicPath:       publicPath,
 			Routes:           routes,
 			ServerBundles:    serverBundles,
@@ -185,7 +185,12 @@ func parseServerBundleFlags(
 
 		routesToBundle := make(map[string]bool)
 		for _, routeID := range routeIDs {
-			if glob.Glob(parts[1], routeID) {
+			matched, err := path.Match(parts[1], routeID)
+			if err != nil {
+				fmt.Println("invalid server bundle flag: " + serverBundleFlag + "\n" + err.Error())
+				os.Exit(1)
+			}
+			if matched {
 				for curID := routeID; curID != ""; {
 					routesToBundle[curID] = true
 					curID = routes[curID].ParentID

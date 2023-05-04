@@ -12,6 +12,14 @@ var ModulePlatformNode ModulePlatform = "node"
 var ModulePlatformNeutral ModulePlatform = "neutral"
 var ModulePlatformBrowser ModulePlatform = "browser"
 
+type RouteConfig struct {
+	Filename string
+	ID       string
+	Index    bool
+	ParentID string
+	Path     string
+}
+
 func (platform ModulePlatform) ToESBuild() esbuild.Platform {
 	switch platform {
 	case ModulePlatformNode:

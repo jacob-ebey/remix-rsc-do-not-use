@@ -10,14 +10,6 @@ import (
 	"github.com/jacob-ebey/fast-remix/internal/module_graph"
 )
 
-type RouteConfig struct {
-	Filename string
-	ID       string
-	Index    bool
-	ParentID string
-	Path     string
-}
-
 var routeFiles = []string{"index", "route"}
 
 func FlatRoutes(appDirectory string) (map[string]*RouteConfig, error) {
@@ -91,6 +83,28 @@ func FlatRoutes(appDirectory string) (map[string]*RouteConfig, error) {
 		for _, childID := range childIDs {
 			child := routeManifest["routes/"+childID]
 			child.ParentID = fullRouteID
+		}
+	}
+
+	for _, routeID := range routeIDs {
+		route, ok := routeManifest["routes/"+routeID]
+		if !ok {
+			return nil, fmt.Errorf("could not find route with id: %s", routeID)
+		}
+		if route.ParentID != "" {
+			parent, ok := routeManifest[route.ParentID]
+			if !ok {
+				return nil, fmt.Errorf("could not find route with id: %s", route.ParentID)
+			}
+			ogPath := route.Path
+			path := ogPath
+			if parent.Path != "" && route.Path != "" {
+				path = strings.TrimPrefix(path, parent.Path)
+				path = strings.TrimPrefix(path, "/")
+				path = strings.TrimSuffix(path, "/")
+			}
+			route.Path = path
+			routeManifest["routes/"+routeID] = route
 		}
 	}
 

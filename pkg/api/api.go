@@ -21,6 +21,8 @@ var ModulePlatformBrowser ModulePlatform = bundle.ModulePlatformBrowser
 type ServerBundle = bundle.ServerBundle
 type SSRBundle = bundle.ServerBundle
 
+type RouteConfig = bundle.RouteConfig
+
 type BuildOptions struct {
 	BrowserEntry     string
 	BrowserOutput    string
@@ -77,7 +79,7 @@ func Build(options BuildOptions) error {
 	}
 
 	var browserBuildResult *esbuild.BuildResult
-	if len(browserEntries) > 0 {
+	if options.BrowserEntry != "" || len(browserEntries) > 0 {
 		if options.BrowserEntry == "" {
 			return fmt.Errorf("'use client' directive found but no client entry was specified")
 		}
@@ -126,6 +128,7 @@ func Build(options BuildOptions) error {
 			serverBundle,
 			moduleGraph.ClientModules,
 			moduleGraph.ServerModules,
+			options.Routes,
 			browserManifest,
 			options.WorkingDirectory,
 			options.Production,
@@ -136,20 +139,8 @@ func Build(options BuildOptions) error {
 		serverBuildResults[serverBundle.Name] = buildResult
 	}
 
-	// serverBundle := serverBundlesByName[name]
-	for _, file := range browserBuildResult.OutputFiles {
-		err := os.MkdirAll(filepath.Dir(file.Path), 0755)
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile(file.Path, file.Contents, 0644)
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, serverBuildResult := range serverBuildResults {
-		for _, file := range serverBuildResult.OutputFiles {
+	if browserBuildResult != nil {
+		for _, file := range browserBuildResult.OutputFiles {
 			err := os.MkdirAll(filepath.Dir(file.Path), 0755)
 			if err != nil {
 				return err
@@ -161,10 +152,30 @@ func Build(options BuildOptions) error {
 		}
 	}
 
-	// fmt.Println(esbuild.AnalyzeMetafile(browserBuildResult.Metafile, esbuild.AnalyzeMetafileOptions{
-	// 	Color:   true,
-	// 	Verbose: false,
-	// }))
+	for name, serverBuildResult := range serverBuildResults {
+		for _, file := range serverBuildResult.OutputFiles {
+			err := os.MkdirAll(filepath.Dir(file.Path), 0755)
+			if err != nil {
+				return err
+			}
+			err = os.WriteFile(file.Path, file.Contents, 0644)
+			if err != nil {
+				return err
+			}
+		}
+
+		fmt.Printf("Server Bundle Analysis (%s):\n", name)
+		fmt.Println(esbuild.AnalyzeMetafile(serverBuildResult.Metafile, esbuild.AnalyzeMetafileOptions{
+			Color:   true,
+			Verbose: false,
+		}))
+	}
+
+	fmt.Println("Browser Bundle Analysis:")
+	fmt.Println(esbuild.AnalyzeMetafile(browserBuildResult.Metafile, esbuild.AnalyzeMetafileOptions{
+		Color:   true,
+		Verbose: false,
+	}))
 
 	return nil
 }

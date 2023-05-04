@@ -1,7 +1,6 @@
 package bundle
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -48,7 +47,7 @@ func BundleBrowser(
 
 	plugins := []esbuild.Plugin{
 		browserRuntimePlugin(workingDirectory, clientModules),
-		newServerModulesPlugin(serverModules),
+		newServerModulesClientPlugin(serverModules),
 		newHttpExternalsPlugin(),
 		newModuleResolverPlugin(resolver),
 	}
@@ -67,7 +66,7 @@ func BundleBrowser(
 		Metafile:          true,
 		MinifyWhitespace:  production,
 		MinifyIdentifiers: production,
-		MinifySyntax:      true,
+		MinifySyntax:      production,
 		Outdir:            buildDirectory,
 		Plugins:           plugins,
 		PublicPath:        publicPath,
@@ -104,8 +103,9 @@ func browserRuntimePlugin(workingDirectory string, clientModules map[string]modu
 				},
 				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
 					return esbuild.OnResolveResult{
-						Path:      args.Path,
-						Namespace: "browser-runtime",
+						Path:        args.Path,
+						Namespace:   "browser-runtime",
+						SideEffects: esbuild.SideEffectsFalse,
 					}, nil
 				},
 			)
@@ -115,60 +115,19 @@ func browserRuntimePlugin(workingDirectory string, clientModules map[string]modu
 					Namespace: "browser-runtime",
 				},
 				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-					contents := "export async function importById(id) {"
-					contents += "switch (id) {"
+					contents := "export async function importById(id) {\n"
+					contents += "  switch (id) {\n"
 					for _, clientModule := range clientModules {
-						contents += fmt.Sprintf("case %q: return import(%q);", clientModule.Hash, clientModule.Source)
+						contents += fmt.Sprintf("    case %q: return import(%q);\n", clientModule.Hash, clientModule.Source)
 					}
-					contents += "default: throw new Error(`unknown ID: ${id}`);"
-					contents += "}"
-					contents += "}"
+					contents += "    default: throw new Error(`unknown ID: ${id}`);\n"
+					contents += "  }\n"
+					contents += "}\n"
 
 					return esbuild.OnLoadResult{
 						Contents:   &contents,
 						Loader:     esbuild.LoaderJS,
 						ResolveDir: workingDirectory,
-					}, nil
-				},
-			)
-		},
-	}
-}
-
-func newServerModulesPlugin(serverModules map[string]module_graph.Module) esbuild.Plugin {
-	return esbuild.Plugin{
-		Name: "server-modules",
-		Setup: func(build esbuild.PluginBuild) {
-			build.OnLoad(
-				esbuild.OnLoadOptions{
-					Filter: ".*",
-				},
-				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-					serverModule, ok := serverModules[args.Path]
-					if !ok {
-						return esbuild.OnLoadResult{}, nil
-					}
-
-					contents := `const SERVER_REFERENCE = Symbol.for("react.server.reference");`
-
-					for _, export := range serverModule.Exports {
-						id := fmt.Sprintf(`"%s#%s"`, serverModule.Hash, export)
-						jsonID, err := json.Marshal(id)
-						if err != nil {
-							return esbuild.OnLoadResult{}, err
-						}
-						reference := fmt.Sprintf(`{ $$typeof: SERVER_REFERENCE, $$id: %s }`, jsonID)
-
-						if export == "default" {
-							contents += fmt.Sprintf(`export default %s;`, reference)
-						} else {
-							contents += fmt.Sprintf(`export const %s = %s;`, export, reference)
-						}
-					}
-
-					return esbuild.OnLoadResult{
-						Contents: &contents,
-						Loader:   esbuild.LoaderJS,
 					}, nil
 				},
 			)
@@ -184,8 +143,9 @@ func newHttpExternalsPlugin() esbuild.Plugin {
 				esbuild.OnResolveOptions{Filter: "^https?:\\/\\/"},
 				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
 					return esbuild.OnResolveResult{
-						Path:     args.Path,
-						External: true,
+						Path:        args.Path,
+						External:    true,
+						SideEffects: esbuild.SideEffectsTrue,
 					}, nil
 				},
 			)

@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "files": [
+    "bin",
     "dist"
   ],
   "bin": {
@@ -12,6 +13,10 @@
     "./browser-runtime": {
       "default": "./dist/browser-runtime.js",
       "types": "./dist/browser-runtime.d.ts"
+    },
+    "./server-runtime": {
+      "default": "./dist/server-runtime.js",
+      "types": "./dist/server-runtime.d.ts"
     }
   },
   "scripts": {
@@ -19,6 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "^16",
+    "@types/react": "^18",
     "typescript": "^5.0.4"
   },
   "optionalDependencies": {

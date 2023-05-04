@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/evanw/esbuild v0.17.18
-	github.com/ryanuber/go-glob v1.0.0
 	github.com/tdewolff/parse/v2 v2.6.5
 	github.com/zealic/go2node v0.1.0
 )

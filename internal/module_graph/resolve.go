@@ -107,7 +107,7 @@ func (r *enhancedResolver) Start() error {
 		for {
 			msg, err := node.Read()
 			if err != nil {
-				fmt.Println("FAILED TO READ", err)
+				fmt.Println("failed to read from node process", err)
 				panic(err)
 			}
 			data := make(map[string]string)

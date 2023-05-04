@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/jacob-ebey/fast-remix/internal/bundle"
 	"github.com/jacob-ebey/fast-remix/internal/module_graph"
@@ -121,22 +123,35 @@ func Build(options BuildOptions) error {
 		}
 	}
 
+	g := new(errgroup.Group)
+
+	serverBuildResultsLock := sync.Mutex{}
 	serverBuildResults := make(map[string]*esbuild.BuildResult, len(options.ServerBundles))
 	for _, serverBundle := range options.ServerBundles {
-		moduleGraph := moduleGraphByBundle[serverBundle.Name]
-		buildResult, err := bundle.BundleServer(
-			serverBundle,
-			moduleGraph.ClientModules,
-			moduleGraph.ServerModules,
-			options.Routes,
-			browserManifest,
-			options.WorkingDirectory,
-			options.Production,
-		)
-		if err != nil {
-			return err
-		}
-		serverBuildResults[serverBundle.Name] = buildResult
+		serverBundle := serverBundle
+		g.Go(func() error {
+			moduleGraph := moduleGraphByBundle[serverBundle.Name]
+			buildResult, err := bundle.BundleServer(
+				serverBundle,
+				moduleGraph.ClientModules,
+				moduleGraph.ServerModules,
+				options.Routes,
+				browserManifest,
+				options.WorkingDirectory,
+				options.Production,
+			)
+			if err != nil {
+				return err
+			}
+			serverBuildResultsLock.Lock()
+			serverBuildResults[serverBundle.Name] = buildResult
+			serverBuildResultsLock.Unlock()
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return err
 	}
 
 	if browserBuildResult != nil {

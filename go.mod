@@ -4,8 +4,10 @@ go 1.20
 
 require (
 	github.com/evanw/esbuild v0.17.18
+	github.com/gobwas/glob v0.2.3
 	github.com/tdewolff/parse/v2 v2.6.5
 	github.com/zealic/go2node v0.1.0
+	golang.org/x/sync v0.2.0
 )
 
 require (

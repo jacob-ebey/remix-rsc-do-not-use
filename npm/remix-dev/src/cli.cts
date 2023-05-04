@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 
 export function run() {
-  const platformPackage = `@remix/${process.platform}-${os.arch()}`;
+  const platformPackage = `@remix-run/dev-${process.platform}-${os.arch()}`;
 
   const platformPackagePath = require.resolve(platformPackage, {
     paths: [__dirname, process.cwd()],

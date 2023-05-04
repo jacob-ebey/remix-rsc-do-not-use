@@ -32,7 +32,7 @@ func BundleServer(
 	entryPoints := []string{serverBundle.EntryPoint}
 
 	plugins := []esbuild.Plugin{
-		newServerRuntimePlugin(workingDirectory, serverModules, browserManifest, routes),
+		newServerRuntimePlugin(workingDirectory, serverModules, browserManifest, routes, serverBundle.RouteIDs),
 		newClientModulesPlugin(clientModules),
 		newServerModulesServerPlugin(serverModules),
 		newModuleResolverPlugin(serverBundle.Resolver),
@@ -80,19 +80,12 @@ func BundleServer(
 	return &buildResult, nil
 }
 
-type serverRoute struct {
-	children []serverRoute
-	id       string
-	imp      string
-	index    bool
-	path     string
-}
-
 func newServerRuntimePlugin(
 	workingDirectory string,
 	serverModules map[string]module_graph.Module,
 	browserManifest string,
 	routes map[string]*RouteConfig,
+	routeIDs []string,
 ) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "server-runtime",
@@ -117,22 +110,42 @@ func newServerRuntimePlugin(
 				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
 					contents := ""
 
+					routesToInclude := map[string]bool{}
+					for _, routeId := range routeIDs {
+						routesToInclude[routeId] = true
+					}
+
 					// TODO: Should probably sort the imports by routeID so that the order is consistent.
 					// The above is not needed if golang maps iterate in a deterministic order.
 					routesSlice := []*RouteConfig{}
 					routeImports := map[string]int{}
 					index := 0
 					for routeId, route := range routes {
+						if _, ok := routesToInclude[routeId]; !ok {
+							continue
+						}
+						if _, ok := routeImports[routeId]; ok {
+							continue
+						}
+						contents += fmt.Sprintf("import * as route%d from %q;\n", index, route.Filename)
 						routesSlice = append(routesSlice, route)
 						routeImports[routeId] = index
 						index += 1
+						parentId := route.ParentID
+						for parentId != "" {
+							if _, ok := routeImports[parentId]; ok {
+								break
+							}
+							parentRoute := routes[parentId]
+							contents += fmt.Sprintf("import * as route%d from %q;\n", index, parentRoute.Filename)
+							routesSlice = append(routesSlice, parentRoute)
+							routeImports[parentId] = index
+							index += 1
+							parentId = parentRoute.ParentID
+						}
 					}
 
 					serverRoutes := createServerRoutesJavascript(routesSlice, routeImports)
-
-					for index, route := range routesSlice {
-						contents += fmt.Sprintf("import * as route%d from %q;\n", index, route.Filename)
-					}
 
 					contents += "export async function importById(id) {\n"
 					contents += "  switch (id) {\n"
@@ -146,8 +159,6 @@ func newServerRuntimePlugin(
 					contents += fmt.Sprintf("export const browserManifest = %s;", browserManifest)
 
 					contents += fmt.Sprintf("export const routes = %s;", serverRoutes)
-
-					fmt.Println(contents)
 
 					return esbuild.OnLoadResult{
 						Contents:   &contents,

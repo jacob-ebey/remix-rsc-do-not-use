@@ -4,10 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/gobwas/glob"
 
 	"github.com/jacob-ebey/fast-remix/internal/module_graph"
 	"github.com/jacob-ebey/fast-remix/pkg/api"
@@ -166,7 +167,7 @@ func parseServerBundleFlags(
 	defaultEntryPoint := module_graph.FindFileWithCodeExtension(filepath.Join(appDirectory, "entry.server"))
 
 	if len(serverBundleFlags) == 0 {
-		serverBundleFlags = []string{"remix:*"}
+		serverBundleFlags = []string{"remix:routes/*"}
 	}
 
 	bundles := make(map[string]api.ServerBundle, len(serverBundleFlags))
@@ -183,14 +184,11 @@ func parseServerBundleFlags(
 			os.Exit(1)
 		}
 
+		g := glob.MustCompile(parts[1])
+
 		routesToBundle := make(map[string]bool)
 		for _, routeID := range routeIDs {
-			matched, err := path.Match(parts[1], routeID)
-			if err != nil {
-				fmt.Println("invalid server bundle flag: " + serverBundleFlag + "\n" + err.Error())
-				os.Exit(1)
-			}
-			if matched {
+			if g.Match(routeID) {
 				for curID := routeID; curID != ""; {
 					routesToBundle[curID] = true
 					curID = routes[curID].ParentID

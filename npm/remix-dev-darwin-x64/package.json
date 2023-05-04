@@ -1,5 +1,5 @@
 {
-  "name": "@remix/darwin-x64",
+  "name": "@remix-run/dev-darwin-x64",
   "version": "0.0.0",
   "files": ["dist"],
   "main": "dist/remix",

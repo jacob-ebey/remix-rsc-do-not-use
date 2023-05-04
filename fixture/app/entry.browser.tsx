@@ -1,3 +1,3 @@
-import { importById } from "remix/browser-runtime";
+import * as runtime from "remix/browser-runtime";
 
-console.log(importById);
+console.log(runtime);

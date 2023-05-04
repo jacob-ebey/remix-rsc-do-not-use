@@ -1,3 +1,3 @@
-import { browserManifest, importById } from "remix/server-runtime";
+import * as runtime from "remix/server-runtime";
 
-console.log(browserManifest, importById);
+console.log(runtime);

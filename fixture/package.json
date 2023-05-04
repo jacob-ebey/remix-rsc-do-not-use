@@ -2,13 +2,18 @@
   "name": "@fast-remix/fixture",
   "type": "module",
   "scripts": {
+    "_build": "remix build",
     "build": "remix --server 'cf:routes/_public*' --server-entry 'cf:app/entry.server.cf.tsx' --server-platform 'cf:neutral' --server-conditions 'cf:workerd,worker,browser,import,default,require' --server-main-fields 'cf:module,browser,main' --server 'node:routes/dashboard*' --server-entry 'node:app/entry.server.node.tsx' build"
   },
   "dependencies": {
+    "@remix-run/dev": "*",
     "@remix-run/react": "^1.16.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "remix": "*"
+  },
+  "devDependencies": {
+    
   },
   "engines": {
     "node": ">=16"

@@ -1,10 +1,14 @@
 {
-  "name": "remix",
+  "name": "@remix-run/dev",
   "version": "0.0.0",
   "type": "module",
   "files": [
+    "bin",
     "dist"
   ],
+  "bin": {
+    "remix": "bin/remix.cjs"
+  },
   "exports": {
     "./browser-runtime": {
       "default": "./dist/browser-runtime.js",
@@ -18,13 +22,14 @@
   "scripts": {
     "build": "tsc"
   },
-  "optionalDependencies": {
-    "@remix-run/dev": "*"
-  },
   "devDependencies": {
     "@types/node": "^16",
     "@types/react": "^18",
     "typescript": "^5.0.4"
+  },
+  "optionalDependencies": {
+    "@remix-run/dev-darwin-arm64": "*",
+    "@remix-run/dev-darwin-x64": "*"
   },
   "engines": {
     "node": ">=16"

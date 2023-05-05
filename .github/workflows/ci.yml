@@ -3,11 +3,8 @@ on: [push]
 concurrency: checks-${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  test-ubuntu:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -26,4 +23,36 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-node-${{ hashFiles('package-lock.json') }}
 
       - run: npm ci -f
-      - run: npm run build
+
+      - run: npm run build:ts
+      - run: npm run build -w npm/remix-dev-linux-x64
+      - run: npm run build:fixture
+
+      - run: npm test
+
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: magnetikonline/action-golang-cache@v4
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v3
+        with:
+          cache: "npm"
+          node-version: latest
+
+      - uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-${{ runner.arch }}-node-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci -f
+
+      - run: npm run build:ts
+      - run: npm run build -w npm/remix-dev-darwin-x64
+      - run: npm run build:fixture
+
+      - run: npm test

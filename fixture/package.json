@@ -2,6 +2,7 @@
   "name": "@fast-remix/fixture",
   "type": "module",
   "scripts": {
+    "start": "node node.server.js",
     "build": "remix build",
     "_build": "remix --server 'cf:routes/_public*' --server-platform 'cf:neutral' --server-conditions 'cf:workerd,worker,browser,import,require,default' --server-main-fields 'cf:module,browser,main' --server 'node:routes/dashboard*' build"
   },

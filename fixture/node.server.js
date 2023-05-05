@@ -24,7 +24,7 @@ app.use(
 
 app.use(createExpressHandler(remixHandler));
 
-const port = Number.parseInt(process.env.PORT || "3000");
+const port = Number.parseInt(process.env.PORT || "3001");
 app.listen(port, () => {
   console.log(`server started at http://localhost:${port}`);
 });

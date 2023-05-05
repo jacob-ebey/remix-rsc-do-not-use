@@ -29,16 +29,23 @@ export function defineHandler<
 
     const url = new URL(request.url);
 
+    let status = context.statusCode;
     const body = await renderToReadableStream(
       <Router context={context} url={url} />,
       runtime.browserManifest,
       {
         onError(error: unknown) {
+          status = 500;
           console.error(error);
         },
       }
     );
 
-    return new Response(body);
+    return new Response(body, {
+      status,
+      headers: {
+        "Content-Type": "text/x-component; charset=utf-8",
+      },
+    });
   };
 }

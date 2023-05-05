@@ -60,12 +60,15 @@ export function createExpressHandler<ServerContext = unknown>(
 
       const response = await handler(request, serverContext);
 
-      const responseHeaders: Record<string, string[]> = {};
+      const responseHeaders: Record<string, string | string[]> = {};
       for (const [key, value] of response.headers) {
         if (!responseHeaders[key]) {
-          responseHeaders[key] = [];
+          responseHeaders[key] = value;
+        } else if (Array.isArray(responseHeaders[key])) {
+          (responseHeaders[key] as string[]).push(value);
+        } else {
+          responseHeaders[key] = [responseHeaders[key] as string, value];
         }
-        responseHeaders[key].push(value);
       }
 
       res.writeHead(response.status, response.statusText, responseHeaders);

@@ -1,4 +1,4 @@
-import type * as React from "react";
+import { ServerRoute } from "./router.js";
 
 export function importById(id: string): Promise<any> {
   throw new Error(
@@ -15,23 +15,5 @@ export interface BrowserManifestEntry {
 export type BrowserManifest = Record<string, BrowserManifestEntry>;
 
 export declare const browserManifest: BrowserManifest;
-
-export interface LoaderArgs<Params extends string = string> {
-  params: Record<Params, string>;
-  url: URL;
-}
-
-export type LoaderFunction<Params extends string = string> = (
-  args: LoaderArgs<Params>
-) => unknown | Promise<unknown>;
-
-export interface ServerRoute {
-  children?: ServerRoute[];
-  Component?: React.FC<{}>;
-  id: string;
-  index?: true;
-  loader?: LoaderFunction;
-  path?: string;
-}
 
 export declare const routes: ServerRoute[];

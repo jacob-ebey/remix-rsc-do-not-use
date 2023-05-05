@@ -29,8 +29,8 @@ func BundleBrowser(
 	resolver, err := module_graph.NewEnhancedResolver(module_graph.EnhancedResolverOptions{
 		CWD:            workingDirectory,
 		Conditions:     conditions,
-		Extensions:     []string{".js", ".mjs", ".cjs", ".json"},
-		ExtensionAlias: []string{".js:.js,.jsx,.ts,.tsx", ".mjs:.mjs,.mts,.mtsx", ".cjs:.cjs,.cts,.ctsx"},
+		Extensions:     []string{".js", ".mjs", ".cjs", ".json", ".node"},
+		ExtensionAlias: []string{".js:.js,.jsx,.ts,.tsx", ".mjs:.mjs,.mts,.mtsx", ".cjs:.cjs,.cts"},
 		MainFields:     []string{"browser", "module", "main"},
 	})
 	if err != nil {
@@ -58,9 +58,10 @@ func BundleBrowser(
 		Bundle:            true,
 		ChunkNames:        "_shared/[name]-[hash]",
 		Define:            defineMap,
-		EntryNames:        "[dir]/[name]-[hash]",
+		EntryNames:        "[name]-[hash]",
 		EntryPoints:       browserEntries,
 		Format:            esbuild.FormatESModule,
+		Inject:            []string{"remix/webpack-polyfill.client"},
 		JSX:               esbuild.JSXAutomatic,
 		JSXDev:            !production,
 		Metafile:          true,

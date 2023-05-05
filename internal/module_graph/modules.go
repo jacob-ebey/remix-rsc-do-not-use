@@ -9,13 +9,13 @@ import (
 )
 
 func IsCodeModule(path string) (bool, esbuild.Loader) {
-	if strings.HasSuffix(path, ".js") {
+	if strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".mjs") || strings.HasSuffix(path, ".cjs") {
 		return true, esbuild.LoaderJS
 	} else if strings.HasSuffix(path, ".jsx") {
 		return true, esbuild.LoaderJSX
-	} else if strings.HasSuffix(path, ".ts") {
+	} else if strings.HasSuffix(path, ".ts") || strings.HasSuffix(path, ".mts") {
 		return true, esbuild.LoaderTS
-	} else if strings.HasSuffix(path, ".tsx") {
+	} else if strings.HasSuffix(path, ".tsx") || strings.HasSuffix(path, ".mtsx") {
 		return true, esbuild.LoaderTSX
 	} else {
 		return false, esbuild.LoaderEmpty

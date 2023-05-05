@@ -5,28 +5,60 @@
   "files": [
     "dist"
   ],
+  "sideEffects": false,
   "exports": {
+    ".": {
+      "types": "./dist/remix.d.ts",
+      "worker": "./dist/remix.edge.js",
+      "workerd": "./dist/remix.edge.js",
+      "node": "./dist/remix.node.js",
+      "default": "./dist/remix.node.js"
+    },
     "./browser-runtime": {
-      "default": "./dist/browser-runtime.js",
-      "types": "./dist/browser-runtime.d.ts"
+      "types": "./dist/browser-runtime.d.ts",
+      "default": "./dist/browser-runtime.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
     },
     "./server-runtime": {
-      "default": "./dist/server-runtime.js",
-      "types": "./dist/server-runtime.d.ts"
+      "types": "./dist/server-runtime.d.ts",
+      "default": "./dist/server-runtime.js"
+    },
+    "./webpack-polyfill.client": {
+      "types": "./dist/webpack-polyfill.client.d.ts",
+      "default": "./dist/webpack-polyfill.client.js"
+    },
+    "./webpack-polyfill.server": {
+      "types": "./dist/webpack-polyfill.server.d.ts",
+      "default": "./dist/webpack-polyfill.server.js"
     }
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc && publint",
+    "watch": "tsc -w"
+  },
+  "peerDependencies": {
+    "@types/react": "^18",
+    "react": "*",
+    "react-dom": "*",
+    "react-server-dom-webpack": "*"
   },
   "optionalDependencies": {
     "@remix-run/dev": "*"
   },
   "devDependencies": {
-    "@types/node": "^16",
-    "@types/react": "^18",
+    "@remix-run/router": "^1.6.1",
+    "@types/node": "^18.16.3",
+    "publint": "^0.1.11",
     "typescript": "^5.0.4"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   }
 }

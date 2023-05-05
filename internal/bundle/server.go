@@ -47,6 +47,7 @@ func BundleServer(
 		EntryNames:        "[name]",
 		EntryPoints:       entryPoints,
 		Format:            esbuild.FormatESModule,
+		Inject:            []string{"remix/webpack-polyfill.server"},
 		JSX:               esbuild.JSXAutomatic,
 		JSXDev:            !production,
 		Metafile:          true,
@@ -234,8 +235,8 @@ func newClientModulesPlugin(clientModules map[string]module_graph.Module) esbuil
 					contents := `const CLIENT_REFERENCE = Symbol.for("react.client.reference");`
 
 					for _, export := range clientModule.Exports {
-						id := fmt.Sprintf(`"%s#%s"`, clientModule.Hash, export)
-						reference := fmt.Sprintf(`{ $$typeof: CLIENT_REFERENCE, $$id: %q }`, id)
+						id := fmt.Sprintf("%s#%s", clientModule.Hash, export)
+						reference := fmt.Sprintf(`{ $$typeof: CLIENT_REFERENCE, $$id: %q, async: true }`, id)
 
 						if export == "default" {
 							contents += fmt.Sprintf(`export default %s;`, reference)
@@ -268,17 +269,14 @@ func newServerModulesServerPlugin(serverModules map[string]module_graph.Module) 
 						return esbuild.OnLoadResult{}, nil
 					}
 
+					isCode, loader := module_graph.IsCodeModule(args.Path)
+					if !isCode {
+						return esbuild.OnLoadResult{}, nil
+					}
+
 					bytes, err := os.ReadFile(args.Path)
 					if err != nil {
 						return esbuild.OnLoadResult{}, err
-					}
-
-					isCode, loader := module_graph.IsCodeModule(args.Path)
-					if !isCode {
-						return esbuild.OnLoadResult{
-							ResolveDir: path.Dir(args.Path),
-							Loader:     esbuild.LoaderEmpty,
-						}, nil
 					}
 
 					transformed := esbuild.Transform(string(bytes), esbuild.TransformOptions{
@@ -339,7 +337,6 @@ func newServerModulesServerPlugin(serverModules map[string]module_graph.Module) 
 													contents += fmt.Sprintf("$$id: { value: %q },", id)
 													contents += "});"
 													contents += "}"
-
 												}
 											}
 										}

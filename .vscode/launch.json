@@ -15,18 +15,14 @@
         "../../fixture",
         "--server",
         "cf:routes/_public*",
-        "--server-entry",
-        "cf:app/entry.server.cf.tsx",
         "--server-platform",
         "cf:neutral",
         "--server-conditions",
-        "cf:workerd,worker,browser,import,default,require",
+        "cf:workerd,worker,browser,import,require,default",
         "--server-main-fields",
         "cf:module,browser,main",
         "--server",
         "node:routes/dashboard*",
-        "--server-entry",
-        "node:app/entry.server.node.tsx",
         "build"
       ]
       // "preLaunchTask": "npm: build"

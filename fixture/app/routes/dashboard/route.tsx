@@ -1,10 +1,10 @@
-import * as Remix from "@remix-run/react";
+import { RouteProps } from "remix/server";
 
-export function Component() {
+export function Component({ outlet }: RouteProps) {
   return (
     <>
       <h1>Home</h1>
-      <Remix.Outlet />
+      {outlet}
     </>
   );
 }

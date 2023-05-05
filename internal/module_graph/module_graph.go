@@ -73,9 +73,10 @@ func BuildModuleGraph(workingDirectory string, entryPoints []string, resolver Re
 
 						isCode, loader := IsCodeModule(args.Path)
 						if !isCode {
+							contents := ""
 							return esbuild.OnLoadResult{
-								ResolveDir: path.Dir(args.Path),
-								Loader:     esbuild.LoaderEmpty,
+								Contents: &contents,
+								Loader:   esbuild.LoaderEmpty,
 							}, nil
 						}
 

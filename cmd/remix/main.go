@@ -46,7 +46,7 @@ func main() {
 	flags.Var(&serverBundleOutputFlags, "server-output", "<name>:<path> (default: build/<name>.js)")
 
 	var serverBundleConditionFlags arrayFlags
-	flags.Var(&serverBundleConditionFlags, "server-conditions", "<name>:<condition>,<condition> (default: remix:node,import,require,default)")
+	flags.Var(&serverBundleConditionFlags, "server-conditions", "<name>:<condition>,<condition> (default: remix:react-server,node,import,require,default)")
 
 	var serverBundleMainFieldFlags arrayFlags
 	flags.Var(&serverBundleMainFieldFlags, "server-main-fields", "<name>:<field>,<field> (default: remix:main)")
@@ -293,9 +293,9 @@ func parseServerBundleFlags(
 	for name := range bundles {
 		bundleResolverOptions[name] = module_graph.EnhancedResolverOptions{
 			CWD:            workingDirectory,
-			Conditions:     []string{"node", "import", "require", "default"},
+			Conditions:     []string{"react-server", "node", "import", "require", "default"},
 			Extensions:     []string{".js", ".mjs", ".cjs", ".json", ".node"},
-			ExtensionAlias: []string{".js:.js,.jsx,.ts,.tsx", ".mjs:.mjs,.mts,.mtsx", ".cjs:.cjs,.cts,.ctsx"},
+			ExtensionAlias: []string{".js:.js,.jsx,.ts,.tsx", ".mjs:.mjs,.mts,.mtsx", ".cjs:.cjs,.cts"},
 			MainFields:     []string{"main"},
 		}
 	}

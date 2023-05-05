@@ -12,7 +12,7 @@
     "tiny-file-size": "^0.3.5"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   },
   "os": [
     "darwin"

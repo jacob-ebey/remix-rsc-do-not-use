@@ -118,7 +118,6 @@ func FlatRoutes(appDirectory string) (map[string]*RouteConfig, error) {
 		routeManifest["root"] = &RouteConfig{
 			Filename: rootFilepath,
 			ID:       "root",
-			Path:     "",
 		}
 	}
 

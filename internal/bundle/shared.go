@@ -18,24 +18,47 @@ func newModuleResolverPlugin(resolver module_graph.Resolver) esbuild.Plugin {
 					Filter: ".*",
 				},
 				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-					if path.IsAbs(args.Path) {
-						return esbuild.OnResolveResult{
-							Path: args.Path,
-							// TODO: Detect side-effects
-							SideEffects: esbuild.SideEffectsFalse,
-						}, nil
+					resolved := args.Path
+
+					sideEffects := esbuild.SideEffectsTrue
+
+					if !path.IsAbs(args.Path) {
+						// TODO: Detect side-effects
+						// resolvedImport, sideEffects, err := ...
+						resolvedImport, err := resolver.ResolveImport(args.Path, args.ResolveDir)
+						if err != nil {
+							return esbuild.OnResolveResult{}, err
+						}
+						resolved = resolvedImport
 					}
 
-					resolved, err := resolver.ResolveImport(args.Path, args.ResolveDir)
-					if err != nil {
-						return esbuild.OnResolveResult{}, err
+					if module_graph.IsStyleModule(resolved) {
+						// TODO: Track CSS imports for inclusion in manifest
+						sideEffects = esbuild.SideEffectsFalse
 					}
 
 					return esbuild.OnResolveResult{
-						Path: resolved,
-						// TODO: Detect side-effects
-						SideEffects: esbuild.SideEffectsFalse,
+						Path:        resolved,
+						SideEffects: sideEffects,
 					}, nil
+				},
+			)
+
+			build.OnLoad(
+				esbuild.OnLoadOptions{
+					Filter:    ".*",
+					Namespace: "file",
+				},
+				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+					if module_graph.IsStyleModule(args.Path) {
+						contents := ""
+						return esbuild.OnLoadResult{
+							Contents: &contents,
+							Loader:   esbuild.LoaderEmpty,
+						}, nil
+					}
+
+					return esbuild.OnLoadResult{}, nil
 				},
 			)
 		},

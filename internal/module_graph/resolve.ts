@@ -62,15 +62,23 @@ process.on(
 
     const ctx = {};
     const resolveContext = {};
-    resolver.resolve(ctx, importerPath, importPath, resolveContext, (error, resolved) => {
-      if (error || !resolved) {
-        process.send!({
-          id,
-          error: error?.message || `Can't resolve not resolve ${importPath} in ${importerPath}`,
-        });
-        return;
+    resolver.resolve(
+      ctx,
+      importerPath,
+      importPath,
+      resolveContext,
+      (error, resolved) => {
+        if (error || !resolved) {
+          process.send!({
+            id,
+            error:
+              error?.message ||
+              `Can't resolve not resolve ${importPath} in ${importerPath}`,
+          });
+          return;
+        }
+        process.send!({ id, resolved });
       }
-      process.send!({ id, resolved });
-    });
+    );
   }
 );

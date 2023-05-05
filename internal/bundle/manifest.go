@@ -24,8 +24,9 @@ type Metafile struct {
 }
 
 type browserManifestEntry struct {
-	Module  string   `json:"module"`
-	Imports []string `json:"imports"`
+	Name   string   `json:"name"`
+	Id     string   `json:"id"`
+	Chunks []string `json:"chunks"`
 }
 
 func CreateBrowserManifest(
@@ -49,10 +50,7 @@ func CreateBrowserManifest(
 		}
 		entryPoint := filepath.Join(workingDirectory, output.EntryPoint)
 		clientModule, hasClientModule := clientModules[entryPoint]
-		key := "entry"
-		if hasClientModule {
-			key = clientModule.Hash
-		} else if entryPoint != browserEntry {
+		if !hasClientModule {
 			continue
 		}
 
@@ -75,9 +73,13 @@ func CreateBrowserManifest(
 			imports = append(imports, publicPath+rel)
 		}
 
-		manifest[key] = browserManifestEntry{
-			Module:  module,
-			Imports: imports,
+		for _, export := range clientModule.Exports {
+			id := clientModule.Hash + "#" + export
+			manifest[id] = browserManifestEntry{
+				Name:   export,
+				Id:     module,
+				Chunks: imports,
+			}
 		}
 	}
 

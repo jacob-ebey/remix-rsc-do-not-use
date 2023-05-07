@@ -27,6 +27,7 @@ type browserManifestEntry struct {
 	Name   string   `json:"name"`
 	Id     string   `json:"id"`
 	Chunks []string `json:"chunks"`
+	Async  bool     `json:"async"`
 }
 
 func CreateBrowserManifest(
@@ -49,19 +50,8 @@ func CreateBrowserManifest(
 			continue
 		}
 		entryPoint := filepath.Join(workingDirectory, output.EntryPoint)
-		clientModule, hasClientModule := clientModules[entryPoint]
-		if !hasClientModule {
-			continue
-		}
 
-		outputFilepath := filepath.Join(workingDirectory, outputFile)
-		rel, err := filepath.Rel(browserOutput, outputFilepath)
-		if err != nil {
-			return "", err
-		}
-		module := publicPath + rel
-
-		imports := []string{}
+		chunks := []string{}
 		for _, imp := range output.Imports {
 			if imp.Kind != "import-statement" {
 				continue
@@ -70,15 +60,36 @@ func CreateBrowserManifest(
 			if err != nil {
 				return "", err
 			}
-			imports = append(imports, publicPath+rel)
+			chunks = append(chunks, publicPath+rel)
+		}
+
+		if entryPoint == browserEntry {
+			outputFilepath := filepath.Join(workingDirectory, outputFile)
+			rel, err := filepath.Rel(browserOutput, outputFilepath)
+			if err != nil {
+				return "", err
+			}
+			module := publicPath + rel
+
+			manifest["browser-entry"] = browserManifestEntry{
+				Id:     module,
+				Chunks: chunks,
+			}
+			continue
+		}
+
+		clientModule, hasClientModule := clientModules[entryPoint]
+		if !hasClientModule {
+			continue
 		}
 
 		for _, export := range clientModule.Exports {
 			id := clientModule.Hash + "#" + export
 			manifest[id] = browserManifestEntry{
 				Name:   export,
-				Id:     module,
-				Chunks: imports,
+				Id:     clientModule.Hash,
+				Chunks: append([]string{clientModule.Hash}, chunks...),
+				Async:  true,
 			}
 		}
 	}

@@ -43,4 +43,10 @@ type ServerBundle struct {
 }
 
 type SSRBundle struct {
+	EntryPoint string
+	Name       string
+	Output     string
+	Platform   ModulePlatform
+	RouteIDs   []string
+	Resolver   module_graph.Resolver
 }

@@ -17,7 +17,6 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          cache: "npm"
           node-version: latest
 
       - uses: actions/cache@v3
@@ -25,10 +24,10 @@ jobs:
           path: node_modules
           key: ${{ runner.os }}-${{ runner.arch }}-node-${{ hashFiles('package-lock.json') }}
 
-      - run: npm ci -f
-      
-      - run: npm run build
+      - run: yarn --ignore-platform
+
+      - run: yarn build
         timeout-minutes: 5
 
-      - run: npm test
+      - run: yarn test
         timeout-minutes: 2

@@ -7,41 +7,56 @@
   ],
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": "./dist/remix.d.ts",
-      "worker": "./dist/remix.edge.js",
-      "workerd": "./dist/remix.edge.js",
-      "node": "./dist/remix.node.js",
-      "default": "./dist/remix.node.js"
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
     },
     "./browser-runtime": {
       "types": "./dist/browser-runtime.d.ts",
       "default": "./dist/browser-runtime.js"
     },
     "./client": {
-      "types": "./dist/client.d.ts",
-      "default": "./dist/client.js"
+      "types": "./dist/client.shared.d.ts",
+      "worker": "./dist/client.edge.js",
+      "workerd": "./dist/client.edge.js",
+      "node": "./dist/client.node.js",
+      "default": "./dist/client.node.js"
     },
     "./server": {
-      "types": "./dist/server.d.ts",
-      "default": "./dist/server.js"
+      "types": "./dist/server.shared.d.ts",
+      "worker": "./dist/server.edge.js",
+      "workerd": "./dist/server.edge.js",
+      "node": "./dist/server.node.js",
+      "default": "./dist/server.node.js"
     },
     "./server-runtime": {
       "types": "./dist/server-runtime.d.ts",
       "default": "./dist/server-runtime.js"
     },
-    "./webpack-polyfill.client": {
-      "types": "./dist/webpack-polyfill.client.d.ts",
-      "default": "./dist/webpack-polyfill.client.js"
+    "./ssr-runtime": {
+      "types": "./dist/ssr-runtime.d.ts",
+      "default": "./dist/ssr-runtime.js"
+    },
+    "./webpack-polyfill.browser": {
+      "types": "./dist/webpack-polyfill.browser.d.ts",
+      "default": "./dist/webpack-polyfill.browser.js"
     },
     "./webpack-polyfill.server": {
       "types": "./dist/webpack-polyfill.server.d.ts",
       "default": "./dist/webpack-polyfill.server.js"
+    },
+    "./webpack-polyfill.ssr": {
+      "types": "./dist/webpack-polyfill.ssr.d.ts",
+      "default": "./dist/webpack-polyfill.ssr.js"
     }
   },
   "scripts": {
     "build": "tsc && publint",
     "watch": "tsc -w"
+  },
+  "dependencies": {
+    "@remix-run/router": "^1.6.1",
+    "isbot": "^3.6.10"
   },
   "peerDependencies": {
     "@types/react": "^18",
@@ -53,9 +68,9 @@
     "@remix-run/dev": "*"
   },
   "devDependencies": {
-    "@remix-run/router": "^1.6.1",
     "@types/node": "^18.16.3",
     "publint": "^0.1.11",
+    "react-router-dom": "^6.11.1",
     "typescript": "^5.0.4"
   },
   "engines": {

@@ -57,7 +57,7 @@ func BundleServer(
 		Outdir:            serverBundle.Output,
 		Platform:          serverBundle.Platform.ToESBuild(),
 		Plugins:           plugins,
-		Sourcemap:         esbuild.SourceMapExternal,
+		Sourcemap:         esbuild.SourceMapLinked,
 		Splitting:         true,
 		Target:            esbuild.ES2020,
 		TreeShaking:       esbuild.TreeShakingTrue,
@@ -146,7 +146,9 @@ func newServerRuntimePlugin(
 						}
 					}
 
+					contents += `import { internal_defineRoute } from "remix/server"` + "\n"
 					serverRoutes := createServerRoutesJavascript(routesSlice, routeImports)
+					contents += fmt.Sprintf("export const routes = %s;\n", serverRoutes)
 
 					contents += "export async function importById(id) {\n"
 					contents += "  switch (id) {\n"
@@ -158,8 +160,6 @@ func newServerRuntimePlugin(
 					contents += "}\n"
 
 					contents += fmt.Sprintf("export const browserManifest = %s;", browserManifest)
-
-					contents += fmt.Sprintf("export const routes = %s;", serverRoutes)
 
 					return esbuild.OnLoadResult{
 						Contents:   &contents,
@@ -189,7 +189,7 @@ func createServerRoutesJavascript(routes []*RouteConfig, routeImports map[string
 }
 
 func createServerRouteJavascriptRecursive(route *RouteConfig, routes []*RouteConfig, routeImports map[string]int) string {
-	contents := "{"
+	contents := "internal_defineRoute({"
 	contents += fmt.Sprintf("  ...route%d,", routeImports[route.ID])
 	contents += fmt.Sprintf("  id: %q,", route.ID)
 	if route.Path != "" {
@@ -214,7 +214,7 @@ func createServerRouteJavascriptRecursive(route *RouteConfig, routes []*RouteCon
 		contents += fmt.Sprintf("  children: [%s],", children)
 	}
 
-	contents += "}"
+	contents += "})"
 	return contents
 }
 
@@ -236,7 +236,7 @@ func newClientModulesPlugin(clientModules map[string]module_graph.Module) esbuil
 
 					for _, export := range clientModule.Exports {
 						id := fmt.Sprintf("%s#%s", clientModule.Hash, export)
-						reference := fmt.Sprintf(`{ $$typeof: CLIENT_REFERENCE, $$id: %q, async: true }`, id)
+						reference := fmt.Sprintf(`{ $$typeof: CLIENT_REFERENCE, $$id: %q, $$async: true }`, id)
 
 						if export == "default" {
 							contents += fmt.Sprintf(`export default %s;`, reference)

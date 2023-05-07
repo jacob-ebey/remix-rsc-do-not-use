@@ -1,3 +1,3 @@
-import * as runtime from "remix/browser-runtime";
+import { hydrate } from "remix/browser";
 
-console.log(runtime);
+hydrate(document);

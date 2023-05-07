@@ -37,11 +37,9 @@ type BuildOptions struct {
 }
 
 func Build(options BuildOptions) error {
-	moduleGraphByBundle := make(map[string]*module_graph.ModuleGraph)
-
-	serverBundlesByName := make(map[string]ServerBundle)
+	// TODO: make module graph resolution concurrent
+	serverModuleGraphByBundle := make(map[string]*module_graph.ModuleGraph)
 	for _, bundle := range options.ServerBundles {
-		serverBundlesByName[bundle.Name] = bundle
 		go func() {
 			defer bundle.Resolver.Stop()
 			err := bundle.Resolver.Start()
@@ -50,7 +48,7 @@ func Build(options BuildOptions) error {
 				panic(err)
 			}
 		}()
-		entries := []string{}
+		entries := []string{bundle.EntryPoint}
 		for _, routeID := range bundle.RouteIDs {
 			entries = append(entries, options.Routes[routeID].Filename)
 		}
@@ -63,14 +61,39 @@ func Build(options BuildOptions) error {
 			return err
 		}
 
-		moduleGraphByBundle[bundle.Name] = moduleGraph
+		serverModuleGraphByBundle[bundle.Name] = moduleGraph
+	}
 
+	ssrModuleGraphByBundle := make(map[string]*module_graph.ModuleGraph)
+	for _, bundle := range options.SSRBundles {
+		go func() {
+			defer bundle.Resolver.Stop()
+			err := bundle.Resolver.Start()
+			if err != nil {
+				fmt.Println("could not start resolver: " + err.Error())
+				panic(err)
+			}
+		}()
+		entries := []string{bundle.EntryPoint}
+		for _, routeID := range bundle.RouteIDs {
+			entries = append(entries, options.Routes[routeID].Filename)
+		}
+		moduleGraph, err := module_graph.BuildModuleGraph(
+			options.WorkingDirectory,
+			entries,
+			bundle.Resolver,
+		)
+		if err != nil {
+			return err
+		}
+
+		ssrModuleGraphByBundle[bundle.Name] = moduleGraph
 	}
 
 	browserEntries := []string{}
 	clientModules := map[string]module_graph.Module{}
 	serverModules := map[string]module_graph.Module{}
-	for _, bundle := range moduleGraphByBundle {
+	for _, bundle := range serverModuleGraphByBundle {
 		for clientModulePath, clientModule := range bundle.ClientModules {
 			browserEntries = append(browserEntries, clientModulePath)
 			clientModules[clientModulePath] = clientModule
@@ -87,6 +110,7 @@ func Build(options BuildOptions) error {
 		}
 
 		browserEntries = append([]string{options.BrowserEntry}, browserEntries...)
+		// browserEntries = []string{options.BrowserEntry}
 
 		var bundleError error
 		browserBuildResult, bundleError = bundle.BundleBrowser(
@@ -130,7 +154,7 @@ func Build(options BuildOptions) error {
 	for _, serverBundle := range options.ServerBundles {
 		serverBundle := serverBundle
 		g.Go(func() error {
-			moduleGraph := moduleGraphByBundle[serverBundle.Name]
+			moduleGraph := serverModuleGraphByBundle[serverBundle.Name]
 			buildResult, err := bundle.BundleServer(
 				serverBundle,
 				moduleGraph.ClientModules,
@@ -146,6 +170,31 @@ func Build(options BuildOptions) error {
 			serverBuildResultsLock.Lock()
 			serverBuildResults[serverBundle.Name] = buildResult
 			serverBuildResultsLock.Unlock()
+			return nil
+		})
+	}
+
+	ssrBuildResultsLock := sync.Mutex{}
+	ssrBuildResults := make(map[string]*esbuild.BuildResult, len(options.SSRBundles))
+	for _, ssrBundle := range options.SSRBundles {
+		ssrBundle := ssrBundle
+		g.Go(func() error {
+			moduleGraph := ssrModuleGraphByBundle[ssrBundle.Name]
+			buildResult, err := bundle.BundleSSR(
+				ssrBundle,
+				moduleGraph.ClientModules,
+				moduleGraph.ServerModules,
+				options.Routes,
+				browserManifest,
+				options.WorkingDirectory,
+				options.Production,
+			)
+			if err != nil {
+				return err
+			}
+			ssrBuildResultsLock.Lock()
+			ssrBuildResults[ssrBundle.Name] = buildResult
+			ssrBuildResultsLock.Unlock()
 			return nil
 		})
 	}
@@ -181,6 +230,25 @@ func Build(options BuildOptions) error {
 
 		fmt.Printf("Server Bundle Analysis (%s):\n", name)
 		fmt.Println(esbuild.AnalyzeMetafile(serverBuildResult.Metafile, esbuild.AnalyzeMetafileOptions{
+			Color:   true,
+			Verbose: false,
+		}))
+	}
+
+	for name, ssrBuildResult := range ssrBuildResults {
+		for _, file := range ssrBuildResult.OutputFiles {
+			err := os.MkdirAll(filepath.Dir(file.Path), 0755)
+			if err != nil {
+				return err
+			}
+			err = os.WriteFile(file.Path, file.Contents, 0644)
+			if err != nil {
+				return err
+			}
+		}
+
+		fmt.Printf("SSR Bundle Analysis (%s):\n", name)
+		fmt.Println(esbuild.AnalyzeMetafile(ssrBuildResult.Metafile, esbuild.AnalyzeMetafileOptions{
 			Color:   true,
 			Verbose: false,
 		}))

@@ -51,6 +51,24 @@ func main() {
 	var serverBundleMainFieldFlags arrayFlags
 	flags.Var(&serverBundleMainFieldFlags, "server-main-fields", "<name>:<field>,<field> (default: remix:main)")
 
+	var ssrBundleFlags arrayFlags
+	flags.Var(&ssrBundleFlags, "ssr", "<name>:<glob> (default: remix:*)")
+
+	var ssrBundleEntryFlags arrayFlags
+	flags.Var(&ssrBundleEntryFlags, "ssr-entry", "<name>:<path> (default: app/entry.ssr)")
+
+	var ssrBundlePlatformFlags arrayFlags
+	flags.Var(&ssrBundlePlatformFlags, "ssr-platform", "<name>:<platform> (default: node | options: node, neutral, browser)")
+
+	var ssrBundleOutputFlags arrayFlags
+	flags.Var(&ssrBundleOutputFlags, "ssr-output", "<name>:<path> (default: build/<name>.js)")
+
+	var ssrBundleConditionFlags arrayFlags
+	flags.Var(&ssrBundleConditionFlags, "ssr-conditions", "<name>:<condition>,<condition> (default: remix:node,import,require,default)")
+
+	var ssrBundleMainFieldFlags arrayFlags
+	flags.Var(&ssrBundleMainFieldFlags, "ssr-main-fields", "<name>:<field>,<field> (default: remix:main)")
+
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		fmt.Println("error parsing flags")
 		os.Exit(1)
@@ -105,6 +123,18 @@ func main() {
 		routes,
 	)
 
+	ssrBundles := parseSSRBundleFlags(
+		workingDirectory,
+		appDirectory,
+		ssrBundleFlags,
+		ssrBundleEntryFlags,
+		ssrBundlePlatformFlags,
+		ssrBundleOutputFlags,
+		ssrBundleConditionFlags,
+		ssrBundleMainFieldFlags,
+		routes,
+	)
+
 	args := flags.Args()
 
 	command := ""
@@ -122,6 +152,7 @@ func main() {
 			PublicPath:       publicPath,
 			Routes:           routes,
 			ServerBundles:    serverBundles,
+			SSRBundles:       ssrBundles,
 			WorkingDirectory: workingDirectory,
 		})
 		if err != nil {
@@ -338,6 +369,207 @@ func parseServerBundleFlags(
 	for _, bundle := range bundles {
 		if bundle.EntryPoint == "" {
 			fmt.Println("missing entry point for server bundle: " + bundle.Name)
+			os.Exit(1)
+		}
+
+		resolver, err := module_graph.NewEnhancedResolver(bundleResolverOptions[bundle.Name])
+		if err != nil {
+			fmt.Println("could not create resolver: " + err.Error())
+			os.Exit(1)
+		}
+
+		bundle.Resolver = resolver
+		results = append(results, bundle)
+	}
+
+	return results
+}
+
+func parseSSRBundleFlags(
+	workingDirectory string,
+	appDirectory string,
+	ssrBundleFlags []string,
+	ssrBundleEntryFlags []string,
+	ssrBundlePlatformFlags []string,
+	ssrBundleOutputFlags []string,
+	ssrBundleConditionFlags []string,
+	ssrBundleMainFieldFlags []string,
+	routes map[string]*api.RouteConfig,
+) []api.SSRBundle {
+	defaultEntryPoint := module_graph.FindFileWithCodeExtension(filepath.Join(appDirectory, "entry.ssr"))
+
+	if len(ssrBundleFlags) == 0 {
+		ssrBundleFlags = []string{"remix:routes/*"}
+	}
+
+	bundles := make(map[string]api.SSRBundle, len(ssrBundleFlags))
+
+	routeIDs := make([]string, len(routes))
+	for k := range routes {
+		routeIDs = append(routeIDs, k)
+	}
+
+	for _, serverBundleFlag := range ssrBundleFlags {
+		parts := strings.Split(serverBundleFlag, ":")
+		if len(parts) != 2 {
+			fmt.Println("invalid server bundle flag: " + serverBundleFlag)
+			os.Exit(1)
+		}
+
+		g := glob.MustCompile(parts[1])
+
+		routesToBundle := make(map[string]bool)
+		for _, routeID := range routeIDs {
+			if g.Match(routeID) {
+				for curID := routeID; curID != ""; {
+					routesToBundle[curID] = true
+					curID = routes[curID].ParentID
+				}
+			}
+		}
+
+		defaultOutput := filepath.Join(workingDirectory, "build/"+parts[0]+"-ssr")
+
+		bundle, ok := bundles[parts[0]]
+		if ok {
+			for _, routeId := range bundle.RouteIDs {
+				routesToBundle[routeId] = true
+			}
+			routeIDs := []string{}
+			for routeID := range routesToBundle {
+				routeIDs = append(routeIDs, routeID)
+			}
+			bundle.RouteIDs = routeIDs
+		} else {
+			routeIDs := []string{}
+			for routeID := range routesToBundle {
+				routeIDs = append(routeIDs, routeID)
+			}
+			bundle = api.SSRBundle{
+				EntryPoint: defaultEntryPoint,
+				Name:       parts[0],
+				Output:     defaultOutput,
+				Platform:   api.ModulePlatformNode,
+				RouteIDs:   routeIDs,
+			}
+		}
+
+		bundles[parts[0]] = bundle
+	}
+
+	for _, ssrBundleEntryFlags := range ssrBundleEntryFlags {
+		parts := strings.Split(ssrBundleEntryFlags, ":")
+		if len(parts) != 2 {
+			fmt.Println("invalid ssr bundle entry flag: " + ssrBundleEntryFlags)
+			os.Exit(1)
+		}
+
+		bundle, ok := bundles[parts[0]]
+		if !ok {
+			fmt.Println("entry specified for unknown ssr bundle: " + parts[0])
+			os.Exit(1)
+		}
+
+		resolved := filepath.Join(workingDirectory, parts[1])
+		bundle.EntryPoint = resolved
+		bundles[parts[0]] = bundle
+	}
+
+	for _, ssrBundlePlatformFlag := range ssrBundlePlatformFlags {
+		parts := strings.Split(ssrBundlePlatformFlag, ":")
+		if len(parts) != 2 || (parts[1] != string(api.ModulePlatformBrowser) && parts[1] != string(api.ModulePlatformNeutral) && parts[1] != string(api.ModulePlatformNode)) {
+			fmt.Println("invalid ssr bundle platform flag: " + ssrBundlePlatformFlag)
+			os.Exit(1)
+		}
+
+		bundle, ok := bundles[parts[0]]
+		if !ok {
+			fmt.Println("platform specified for unknown ssr bundle: " + parts[0])
+			os.Exit(1)
+		}
+
+		bundle.Platform = api.ModulePlatform(parts[1])
+		bundles[parts[0]] = bundle
+	}
+
+	seenOutputs := make(map[string]bool)
+	for _, ssrBundleOutputFlag := range ssrBundleOutputFlags {
+		parts := strings.Split(ssrBundleOutputFlag, ":")
+		if len(parts) != 2 {
+			fmt.Println("invalid ssr bundle output flag: " + ssrBundleOutputFlag)
+			os.Exit(1)
+		}
+
+		bundle, ok := bundles[parts[0]]
+		if !ok {
+			fmt.Println("platform specified for unknown ssr bundle: " + parts[0])
+			os.Exit(1)
+		}
+
+		resolvedOutput, err := filepath.Abs(filepath.Join(workingDirectory, parts[1]))
+		if err != nil || resolvedOutput == "" {
+			fmt.Println("could not determine bundle output directory")
+			os.Exit(1)
+		}
+
+		if seenOutputs[resolvedOutput] {
+			fmt.Println("duplicate bundle output directory: " + resolvedOutput)
+			os.Exit(1)
+		}
+
+		bundle.Output = resolvedOutput
+		bundles[parts[0]] = bundle
+	}
+
+	bundleResolverOptions := make(map[string]module_graph.EnhancedResolverOptions)
+	for name := range bundles {
+		bundleResolverOptions[name] = module_graph.EnhancedResolverOptions{
+			CWD:            workingDirectory,
+			Conditions:     []string{"node", "import", "require", "default"},
+			Extensions:     []string{".js", ".mjs", ".cjs", ".json", ".node"},
+			ExtensionAlias: []string{".js:.js,.jsx,.ts,.tsx", ".mjs:.mjs,.mts,.mtsx", ".cjs:.cjs,.cts"},
+			MainFields:     []string{"main"},
+		}
+	}
+
+	for _, ssrBundleConditionFlag := range ssrBundleConditionFlags {
+		parts := strings.Split(ssrBundleConditionFlag, ":")
+		if len(parts) != 2 {
+			fmt.Println("invalid ssr bundle condition flag: " + ssrBundleConditionFlag)
+			os.Exit(1)
+		}
+
+		resolver, ok := bundleResolverOptions[parts[0]]
+		if !ok {
+			fmt.Println("condition specified for unknown ssr bundle: " + parts[0])
+			os.Exit(1)
+		}
+
+		resolver.Conditions = strings.Split(parts[1], ",")
+		bundleResolverOptions[parts[0]] = resolver
+	}
+
+	for _, ssrBundleMainFieldFlag := range ssrBundleMainFieldFlags {
+		parts := strings.Split(ssrBundleMainFieldFlag, ":")
+		if len(parts) != 2 {
+			fmt.Println("invalid ssr bundle main field flag: " + ssrBundleMainFieldFlag)
+			os.Exit(1)
+		}
+
+		resolver, ok := bundleResolverOptions[parts[0]]
+		if !ok {
+			fmt.Println("main field specified for unknown ssr bundle: " + parts[0])
+			os.Exit(1)
+		}
+
+		resolver.MainFields = strings.Split(parts[1], ",")
+		bundleResolverOptions[parts[0]] = resolver
+	}
+
+	results := []api.SSRBundle{}
+	for _, bundle := range bundles {
+		if bundle.EntryPoint == "" {
+			fmt.Println("missing entry point for ssr bundle: " + bundle.Name)
 			os.Exit(1)
 		}
 

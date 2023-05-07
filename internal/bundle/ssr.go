@@ -5,16 +5,17 @@ import (
 	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
+
 	"github.com/jacob-ebey/fast-remix/internal/module_graph"
 )
 
-func BundleBrowser(
-	browserEntries []string,
+func BundleSSR(
+	ssrBundle ServerBundle,
 	clientModules map[string]module_graph.Module,
 	serverModules map[string]module_graph.Module,
+	routes map[string]*RouteConfig,
+	browserManifest string,
 	workingDirectory string,
-	buildDirectory string,
-	publicPath string,
 	production bool,
 ) (*esbuild.BuildResult, error) {
 	defineMap := make(map[string]string, 1)
@@ -24,32 +25,13 @@ func BundleBrowser(
 		defineMap["process.env.NODE_ENV"] = "\"development\""
 	}
 
-	conditions := []string{"browser", "import", "require", "default"}
-
-	resolver, err := module_graph.NewEnhancedResolver(module_graph.EnhancedResolverOptions{
-		CWD:            workingDirectory,
-		Conditions:     conditions,
-		Extensions:     []string{".js", ".mjs", ".cjs", ".json", ".node"},
-		ExtensionAlias: []string{".js:.js,.jsx,.ts,.tsx", ".mjs:.mjs,.mts,.mtsx", ".cjs:.cjs,.cts"},
-		MainFields:     []string{"browser", "module", "main"},
-	})
-	if err != nil {
-		return nil, err
-	}
-	go func() {
-		defer resolver.Stop()
-		err := resolver.Start()
-		if err != nil {
-			fmt.Println("could not start resolver: " + err.Error())
-			panic(err)
-		}
-	}()
+	entryPoints := []string{ssrBundle.EntryPoint}
 
 	plugins := []esbuild.Plugin{
-		newBrowserRuntimePlugin(workingDirectory, clientModules),
+		newSSRClientRuntimePlugin(workingDirectory, clientModules, browserManifest),
 		newServerModulesClientPlugin(serverModules),
 		newHttpExternalsPlugin(),
-		newModuleResolverPlugin(resolver),
+		newModuleResolverPlugin(ssrBundle.Resolver),
 	}
 
 	buildContext, buildError := esbuild.Context(esbuild.BuildOptions{
@@ -58,25 +40,26 @@ func BundleBrowser(
 		Bundle:            true,
 		ChunkNames:        "_shared/[name]-[hash]",
 		Define:            defineMap,
-		EntryNames:        "[name]-[hash]",
-		EntryPoints:       browserEntries,
+		EntryNames:        "[name]",
+		EntryPoints:       entryPoints,
 		Format:            esbuild.FormatESModule,
-		Inject:            []string{"remix/webpack-polyfill.browser"},
+		Inject:            []string{"remix/webpack-polyfill.ssr"},
 		JSX:               esbuild.JSXAutomatic,
 		JSXDev:            !production,
 		Metafile:          true,
 		MinifyWhitespace:  production,
 		MinifyIdentifiers: production,
 		MinifySyntax:      production,
-		Outdir:            buildDirectory,
+		Outdir:            ssrBundle.Output,
+		Platform:          ssrBundle.Platform.ToESBuild(),
 		Plugins:           plugins,
-		PublicPath:        publicPath,
-		Sourcemap:         esbuild.SourceMapExternal,
+		Sourcemap:         esbuild.SourceMapLinked,
 		Splitting:         true,
 		Target:            esbuild.ES2020,
 		TreeShaking:       esbuild.TreeShakingTrue,
 		Write:             false,
 	})
+
 	if buildError != nil {
 		return nil, buildError
 	}
@@ -88,63 +71,60 @@ func BundleBrowser(
 			Color: true,
 			Kind:  esbuild.ErrorMessage,
 		})
-		return nil, fmt.Errorf("browser build failed:\n%s", strings.Join(messages, "\n"))
+		return nil, fmt.Errorf("ssr bundle %q failed to build:\n%s", ssrBundle.Name, strings.Join(messages, "\n"))
 	}
 
 	return &buildResult, nil
 }
 
-func newHttpExternalsPlugin() esbuild.Plugin {
+func newSSRClientRuntimePlugin(
+	workingDirectory string,
+	clientModules map[string]module_graph.Module,
+	browserManifest string,
+) esbuild.Plugin {
 	return esbuild.Plugin{
-		Name: "http-externals",
-		Setup: func(build esbuild.PluginBuild) {
-			build.OnResolve(
-				esbuild.OnResolveOptions{Filter: "^https?:\\/\\/"},
-				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-					return esbuild.OnResolveResult{
-						Path:        args.Path,
-						External:    true,
-						SideEffects: esbuild.SideEffectsTrue,
-					}, nil
-				},
-			)
-		},
-	}
-}
-
-func newBrowserRuntimePlugin(workingDirectory string, clientModules map[string]module_graph.Module) esbuild.Plugin {
-	return esbuild.Plugin{
-		Name: "browser-runtime",
+		Name: "ssr-runtime",
 		Setup: func(build esbuild.PluginBuild) {
 			build.OnResolve(
 				esbuild.OnResolveOptions{
-					Filter: "^remix\\/browser-runtime$",
+					Filter: "^remix\\/ssr-runtime$",
 				},
 				func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
 					return esbuild.OnResolveResult{
 						Path:        args.Path,
-						Namespace:   "browser-runtime",
+						Namespace:   "ssr-runtime",
 						SideEffects: esbuild.SideEffectsFalse,
 					}, nil
 				},
 			)
 			build.OnLoad(
 				esbuild.OnLoadOptions{
-					Filter:    "^remix\\/browser-runtime$",
-					Namespace: "browser-runtime",
+					Filter:    "^remix\\/ssr-runtime$",
+					Namespace: "ssr-runtime",
 				},
 				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
 					contents := "export async function importById(id) {\n"
-					contents += `  if (id.startsWith("/") || id.startsWith("http")) {` + "\n"
-					contents += `    return import(id);` + "\n"
-					contents += "  }\n"
 					contents += "  switch (id) {\n"
 					for _, clientModule := range clientModules {
 						contents += fmt.Sprintf("    case %q: return import(%q);\n", clientModule.Hash, clientModule.Source)
 					}
-					contents += "    default: throw new Error(`unknown import id ${id}`);\n"
+					contents += "    default: return Promise.resolve({});\n"
 					contents += "  }\n"
 					contents += "}\n"
+
+					contents += "const browserManifest = " + browserManifest + ";\n"
+
+					contents += `export const browserEntrypoint = browserManifest["browser-entry"];` + "\n"
+
+					contents += "export const moduleMap = new Proxy({}, {\n"
+					contents += "  get: (_, id) => {\n"
+					contents += "    return new Proxy({}, {\n"
+					contents += "      get: (_, name) => {\n"
+					contents += `        return browserManifest[id+"#"+name];`
+					contents += "      }\n"
+					contents += "    });\n"
+					contents += "  }\n"
+					contents += "});\n"
 
 					return esbuild.OnLoadResult{
 						Contents:   &contents,

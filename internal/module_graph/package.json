@@ -1,13 +1,17 @@
 {
-  "name": "@fast-remix/internal__module_graph",
+  "name": "@remix-run/internal-module-graph",
+  "private": true,
+  "version": "0.0.0",
   "scripts": {
     "build": "esbuild resolve.ts --bundle --minify --external:pnpapi --format=cjs --platform=node --target=node16 --outfile=dist/resolve.js"
   },
-  "devDependencies": {
-    "@types/node": "^18.16.3",
+  "dependencies": {
     "arg": "^5.0.2",
     "enhanced-resolve": "^5.13.0",
     "esbuild": "0.17.18"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.3"
   },
   "engines": {
     "node": ">=18"

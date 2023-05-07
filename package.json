@@ -5,6 +5,11 @@
     "internal/module_graph",
     "npm/*"
   ],
+  "resolutions": {
+    "react": "18.3.0-canary-efb381bbf-20230505",
+    "react-dom": "18.3.0-canary-efb381bbf-20230505",
+    "react-server-dom-webpack": "18.3.0-canary-efb381bbf-20230505"
+  },
   "scripts": {
     "build": "npm run build:ts && npm run build:cli && npm run build:fixture",
     "build:ts": "npm run build -w internal/module_graph -w npm/remix -w npm/remix-dev -w npm/remix-express",
@@ -13,7 +18,7 @@
     "watch": "concurrently \"npm run watch -w npm/remix\" \"npm run watch -w npm/remix-dev\" \"npm run watch -w npm/remix-express\"",
     "start": "npm run start -w fixture",
     "cy:run": "cypress run",
-    "test": "start-test start http://localhost:3001 cy:run"
+    "test": "start-test start http://localhost:3000 cy:run"
   },
   "devDependencies": {
     "concurrently": "^8.0.1",

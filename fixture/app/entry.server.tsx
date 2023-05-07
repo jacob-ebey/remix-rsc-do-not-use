@@ -1,4 +1,4 @@
-import { defineHandler } from "remix";
+import { defineHandler } from "remix/server";
 import * as runtime from "remix/server-runtime";
 
 const store = new Map();

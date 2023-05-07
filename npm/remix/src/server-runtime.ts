@@ -8,8 +8,10 @@ export function importById(id: string): Promise<any> {
 }
 
 export interface BrowserManifestEntry {
-  module: string;
-  imports: string[];
+  id: string;
+  chunks: string[];
+  name: string;
+  async: true;
 }
 
 export type BrowserManifest = Record<string, BrowserManifestEntry>;

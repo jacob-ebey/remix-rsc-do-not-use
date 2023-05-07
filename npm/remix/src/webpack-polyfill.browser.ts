@@ -1,3 +1,5 @@
+import { importById } from "remix/browser-runtime";
+
 const cachedImports = new Map<string, Promise<any>>();
 const cachedMods = new Map<string, any>();
 
@@ -5,7 +7,7 @@ export function __webpack_chunk_load__(id: string) {
   const cached = cachedImports.get(id);
   if (cached) return cached;
 
-  const importPromise = import(id).then(
+  const importPromise = importById(id).then(
     (mod) => {
       cachedMods.set(id, mod);
       return mod;

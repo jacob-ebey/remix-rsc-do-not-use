@@ -12,3 +12,8 @@ export declare const moduleMap: Record<
     }
   >
 >;
+
+export declare const browserEntrypoint: {
+  id: string;
+  chunks: string[];
+};

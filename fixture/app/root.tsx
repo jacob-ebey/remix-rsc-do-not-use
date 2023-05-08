@@ -39,9 +39,12 @@ function App({ cart, children }: { cart?: any; children: React.ReactNode }) {
         <link rel="icon" href="/favicon.ico" />
         <link
           rel="stylesheet"
-          href="https://unpkg.com/nprogress@0.2.0/nprogress.css"
+          href="/nprogress.css"
         />
-        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+          rel="stylesheet"
+          href="/styles.css"
+        />
       </head>
       <body className="bg-white">
         <Layout cart={cart}>{children}</Layout>

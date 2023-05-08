@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node node.server.js",
+    "build:css": "tailwindcss --minify -o ./public/styles.css",
     "build": "remix build",
     "build:cf": "remix --server-platform 'remix:neutral' --server-conditions 'remix:react-server,import,require,default' --ssr-platform 'remix:neutral'  --ssr-conditions 'remix:import,require,default' build"
   },
@@ -27,7 +28,8 @@
     "@types/express": "^4.17.17",
     "@types/nprogress": "^0.2.0",
     "@types/react": "^18.2.6",
-    "@types/source-map-support": "^0.5.6"
+    "@types/source-map-support": "^0.5.6",
+    "tailwindcss": "^3.3.2"
   },
   "engines": {
     "node": ">=18"

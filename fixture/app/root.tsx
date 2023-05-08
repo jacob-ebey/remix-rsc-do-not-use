@@ -36,6 +36,7 @@ function App({ cart, children }: { cart?: any; children: React.ReactNode }) {
         <title>mock.shop</title>
         <meta name="description" content="mock.shop" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
         <link
           rel="stylesheet"
           href="https://unpkg.com/nprogress@0.2.0/nprogress.css"

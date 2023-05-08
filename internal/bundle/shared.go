@@ -29,6 +29,13 @@ func newModuleResolverPlugin(resolver module_graph.Resolver) esbuild.Plugin {
 						if err != nil {
 							return esbuild.OnResolveResult{}, err
 						}
+						if resolvedImport == "___external___" {
+							return esbuild.OnResolveResult{
+								Path:        args.Path,
+								External:    true,
+								SideEffects: esbuild.SideEffectsFalse,
+							}, nil
+						}
 						resolved = resolvedImport
 					}
 

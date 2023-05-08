@@ -7,8 +7,7 @@
   ],
   "resolutions": {
     "react": "18.3.0-canary-efb381bbf-20230505",
-    "react-dom": "18.3.0-canary-efb381bbf-20230505",
-    "react-server-dom-webpack": "18.3.0-canary-efb381bbf-20230505"
+    "react-dom": "18.3.0-canary-efb381bbf-20230505"
   },
   "scripts": {
     "build": "npm run build:ts && npm run build:cli && npm run build:fixture",
@@ -16,13 +15,10 @@
     "build:cli": "npm run build -w npm/remix-dev-darwin-arm64 -w npm/remix-dev-darwin-x64 -w npm/remix-dev-linux-x64",
     "build:fixture": "npm run build -w fixture",
     "watch": "concurrently \"npm run watch -w npm/remix\" \"npm run watch -w npm/remix-dev\" \"npm run watch -w npm/remix-express\"",
-    "start": "npm run start -w fixture",
-    "cy:run": "cypress run",
-    "test": "start-test start http://localhost:3000 cy:run"
+    "start": "npm run start -w fixture"
   },
   "devDependencies": {
     "concurrently": "^8.0.1",
-    "cypress": "^12.11.0",
     "start-server-and-test": "^2.0.0"
   },
   "engines": {

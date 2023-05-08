@@ -111,6 +111,8 @@ func main() {
 		browserEntry = module_graph.FindFileWithCodeExtension(filepath.Join(appDirectory, "entry.browser"))
 	}
 
+	production := true
+
 	serverBundles := parseServerBundleFlags(
 		workingDirectory,
 		appDirectory,
@@ -121,6 +123,7 @@ func main() {
 		serverBundleConditionFlags,
 		serverBundleMainFieldFlags,
 		routes,
+		production,
 	)
 
 	ssrBundles := parseSSRBundleFlags(
@@ -133,6 +136,7 @@ func main() {
 		ssrBundleConditionFlags,
 		ssrBundleMainFieldFlags,
 		routes,
+		production,
 	)
 
 	args := flags.Args()
@@ -148,7 +152,7 @@ func main() {
 		err := api.Build(api.BuildOptions{
 			BrowserEntry:     browserEntry,
 			BrowserOutput:    browserOutput,
-			Production:       false,
+			Production:       production,
 			PublicPath:       publicPath,
 			Routes:           routes,
 			ServerBundles:    serverBundles,
@@ -194,6 +198,7 @@ func parseServerBundleFlags(
 	serverBundleConditionFlags []string,
 	serverBundleMainFieldFlags []string,
 	routes map[string]*api.RouteConfig,
+	production bool,
 ) []api.ServerBundle {
 	defaultEntryPoint := module_graph.FindFileWithCodeExtension(filepath.Join(appDirectory, "entry.server"))
 
@@ -321,10 +326,17 @@ func parseServerBundleFlags(
 	}
 
 	bundleResolverOptions := make(map[string]module_graph.EnhancedResolverOptions)
+	defaultConditions := []string{"react-server", "node", "import", "require", "default"}
+	if production {
+		defaultConditions = append([]string{"production"}, defaultConditions...)
+	} else {
+		defaultConditions = append([]string{"development"}, defaultConditions...)
+	}
+
 	for name := range bundles {
 		bundleResolverOptions[name] = module_graph.EnhancedResolverOptions{
 			CWD:            workingDirectory,
-			Conditions:     []string{"react-server", "node", "import", "require", "default"},
+			Conditions:     defaultConditions,
 			Extensions:     []string{".js", ".mjs", ".cjs", ".json", ".node"},
 			ExtensionAlias: []string{".js:.js,.jsx,.ts,.tsx", ".mjs:.mjs,.mts,.mtsx", ".cjs:.cjs,.cts"},
 			MainFields:     []string{"main"},
@@ -344,7 +356,16 @@ func parseServerBundleFlags(
 			os.Exit(1)
 		}
 
-		resolver.Conditions = strings.Split(parts[1], ",")
+		conditions := strings.Split(parts[1], ",")
+
+		if production {
+			conditions = append([]string{"production"}, conditions...)
+		} else {
+			conditions = append([]string{"development"}, conditions...)
+		}
+
+		resolver.Conditions = conditions
+
 		bundleResolverOptions[parts[0]] = resolver
 	}
 
@@ -395,6 +416,7 @@ func parseSSRBundleFlags(
 	ssrBundleConditionFlags []string,
 	ssrBundleMainFieldFlags []string,
 	routes map[string]*api.RouteConfig,
+	production bool,
 ) []api.SSRBundle {
 	defaultEntryPoint := module_graph.FindFileWithCodeExtension(filepath.Join(appDirectory, "entry.ssr"))
 
@@ -522,10 +544,18 @@ func parseSSRBundleFlags(
 	}
 
 	bundleResolverOptions := make(map[string]module_graph.EnhancedResolverOptions)
+
+	defaultConditions := []string{"node", "import", "require", "default"}
+	if production {
+		defaultConditions = append([]string{"production"}, defaultConditions...)
+	} else {
+		defaultConditions = append([]string{"development"}, defaultConditions...)
+	}
+
 	for name := range bundles {
 		bundleResolverOptions[name] = module_graph.EnhancedResolverOptions{
 			CWD:            workingDirectory,
-			Conditions:     []string{"node", "import", "require", "default"},
+			Conditions:     defaultConditions,
 			Extensions:     []string{".js", ".mjs", ".cjs", ".json", ".node"},
 			ExtensionAlias: []string{".js:.js,.jsx,.ts,.tsx", ".mjs:.mjs,.mts,.mtsx", ".cjs:.cjs,.cts"},
 			MainFields:     []string{"main"},
@@ -545,7 +575,16 @@ func parseSSRBundleFlags(
 			os.Exit(1)
 		}
 
-		resolver.Conditions = strings.Split(parts[1], ",")
+		conditions := strings.Split(parts[1], ",")
+
+		if production {
+			conditions = append([]string{"production"}, conditions...)
+		} else {
+			conditions = append([]string{"development"}, conditions...)
+		}
+
+		resolver.Conditions = conditions
+
 		bundleResolverOptions[parts[0]] = resolver
 	}
 

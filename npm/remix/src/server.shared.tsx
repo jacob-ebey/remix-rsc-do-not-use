@@ -1,8 +1,10 @@
-import * as React from "react";
 import { ErrorResponse } from "@remix-run/router";
+import type { CreateCookieSessionStorageFunction } from "@remix-run/server-runtime";
 
 import { getRouterRef, type ServerRoute } from "./router.js";
 import type * as ServerRuntime from "./server-runtime.js";
+
+export type { Session, SessionStorage } from "@remix-run/server-runtime";
 
 export type {
   BoundaryProps,
@@ -12,6 +14,8 @@ export type {
 } from "./router.js";
 export { defineMixin } from "./router.js";
 
+export declare const createCookieSessionStorage: CreateCookieSessionStorageFunction;
+
 export interface CreateRequestContextArgs<ServerContext> {
   request: Request;
   serverContext: ServerContext;
@@ -20,6 +24,17 @@ export interface CreateRequestContextArgs<ServerContext> {
 export type CreateRequestContext<ServerContext, RequestContext> = (
   args: CreateRequestContextArgs<ServerContext>
 ) => RequestContext | Promise<RequestContext>;
+
+export interface CommitRequestContextArgs<ServerContext, RequestContext> {
+  response: Response;
+  request: Request;
+  requestContext: RequestContext;
+  serverContext: ServerContext;
+}
+
+export type CommitRequestContext<ServerContext, RequestContext> = (
+  args: CommitRequestContextArgs<ServerContext, RequestContext>
+) => Response | Promise<Response>;
 
 export type Handler<ServerContext = unknown> = (
   request: Request,
@@ -32,9 +47,13 @@ export interface DefineHandlerArgs<
 > {
   basename?: string;
   createRequestContext?: CreateRequestContext<ServerContext, RequestContext>;
+  commitRequestContext?: CommitRequestContext<ServerContext, RequestContext>;
   runtime: typeof ServerRuntime;
 }
 
+/**
+ * Define a server handler for your application.
+ */
 export declare function defineHandler<
   RequestContext = unknown,
   ServerContext = unknown
@@ -42,6 +61,9 @@ export declare function defineHandler<
   args: DefineHandlerArgs<RequestContext, ServerContext>
 ): Handler<ServerContext>;
 
+/**
+ * @internal do not use
+ */
 export function internal_defineRoute(_route: unknown): unknown {
   const route = _route as ServerRoute;
   let action = route.action;
@@ -53,8 +75,8 @@ export function internal_defineRoute(_route: unknown): unknown {
       const mixins = {};
       const url = new URL(args.request.url);
       for (const [key, mixin] of Object.entries(route.mixins ?? {})) {
+        const params = mixin.map({ params: args.params, url });
         if (mixin.definition.loader) {
-          const params = mixin.map({ params: args.params, url });
           const flatParams = Object.entries(params)
             .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
             .flat();
@@ -79,12 +101,14 @@ export function internal_defineRoute(_route: unknown): unknown {
                 mixins[key] = { params, loaderError: error };
               })
           );
+        } else {
+          mixins[key] = { params };
         }
       }
 
-      const loaderData = route.loader ? route.loader(args) : null;
+      const loaderData = route.loader ? await route.loader(args) : null;
 
-      await mixinPromises;
+      await Promise.all(mixinPromises);
 
       return {
         loaderData,
@@ -114,12 +138,13 @@ export function internal_defineRoute(_route: unknown): unknown {
           );
         }
 
-        const mixinResult = await (async () =>
+        const mixinResult = await Promise.resolve(
           mixin.definition.action({
             context,
             params: mixin.map({ params, url }),
             request,
-          }))()
+          })
+        )
           .then((actionData) => ({ actionData }))
           .catch((error) => ({ actionError: error }));
 
@@ -128,9 +153,21 @@ export function internal_defineRoute(_route: unknown): unknown {
         };
       }
 
-      const actionData = route.action
-        ? route.action({ context, params, request })
-        : null;
+      if (!route.action) {
+        throw new ErrorResponse(
+          405,
+          "Method Not Allowed",
+          new Error(
+            `You made a ${request.method.toUpperCase()} request to "${
+              url.pathname
+            }" but ` +
+              `did not provide an \`action\` for route "${route.id}", ` +
+              `so there is no way to handle the request.`
+          )
+        );
+      }
+
+      const actionData = await route.action({ context, params, request });
 
       return {
         actionData,
@@ -153,12 +190,36 @@ function requireRouter(name: string) {
   return router;
 }
 
+/**
+ * @returns The current matches being rendered
+ */
 export function matches() {
   const router = requireRouter("matches()");
   return router.matchesToRender;
 }
 
-export function url(): URL {
+/**
+ * @returns The current location of the request
+ */
+export function currentLocation() {
   const router = requireRouter("url()");
-  return router.url;
+  return router.location;
+}
+
+/**
+ * @returns A new instance of the current request URL.
+ */
+export function currentURL(): URL {
+  const router = requireRouter("url()");
+  return new URL(router.url);
+}
+
+const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
+
+export function isRedirectStatusCode(statusCode: number): boolean {
+  return redirectStatusCodes.has(statusCode);
+}
+
+export function isRedirectResponse(response: Response): boolean {
+  return isRedirectStatusCode(response.status);
 }

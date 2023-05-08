@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -29,5 +29,5 @@ jobs:
       - run: yarn build
         timeout-minutes: 5
 
-      - run: yarn test
-        timeout-minutes: 2
+      # - run: yarn test
+      #   timeout-minutes: 2

@@ -2,6 +2,7 @@
   "include": ["./src/**/*"],
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
+    "types": ["react/experimental"],
     "rootDir": "./src",
     "outDir": "./dist",
     "module": "Node16",

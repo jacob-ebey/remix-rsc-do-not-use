@@ -1,7 +1,13 @@
 import * as fs from "node:fs";
+import * as mod from "node:module";
 
 import arg from "arg";
 import { CachedInputFileSystem, ResolverFactory } from "enhanced-resolve";
+
+const builtins = new Set([
+  ...mod.builtinModules,
+  ...mod.builtinModules.map((m) => `node:${m}`),
+]);
 
 let {
   "--condition": conditions,
@@ -59,6 +65,11 @@ process.on(
   "message",
   (message: { id: string; importPath: string; importerPath: string }) => {
     const { id, importPath, importerPath } = message;
+
+    if (builtins.has(importPath)) {
+      process.send!({ id, resolved: "___external___" });
+      return;
+    }
 
     const ctx = {};
     const resolveContext = {};

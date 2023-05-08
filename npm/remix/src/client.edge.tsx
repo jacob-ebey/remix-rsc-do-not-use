@@ -1,25 +1,12 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/server.edge";
-import RSCClient from "react-server-dom-webpack/client.edge";
+import * as RSCClient from "react-server-dom-remix/client";
 import IsBot from "isbot";
 
-import type {
-  DefineRemoteArgs,
-  Remote,
-  RemoteFetcher,
-} from "./client.shared.js";
-export * from "./client.shared.js";
+import type { DefineRemoteArgs, Remote } from "./client.shared.js";
 import { Router as ClientRouter } from "./router.client.js";
 
-export function createRemoteFetcher(hostname: string): RemoteFetcher {
-  return (request) => {
-    const url = new URL(request.url);
-    url.hostname = hostname;
-    url.searchParams.set("_rsc", "1");
-
-    return fetch(url, request);
-  };
-}
+export * from "./client.shared.js";
 
 const bootstrapScriptContent = `
   window.__rsc_encoder = new TextEncoder();
@@ -46,9 +33,23 @@ export function defineRemote<ServerContext = unknown>(
     const fetcher = fetcherFactory({ request, serverContext });
     const response = await fetcher(request);
 
-    if (response.status >= 300 && response.status <= 399) {
+    const redirectLocation = response.headers.get("X-Remix-Redirect")!;
+    const redirectStatus = response.headers.get("X-Remix-Status")!;
+    if (response.status === 204 && redirectLocation && redirectStatus) {
+      return new Response(null, {
+        status: Number.parseInt(redirectStatus),
+        headers: { Location: redirectLocation },
+      });
+    }
+
+    if (
+      !response.headers.get("Content-Type")?.match(/\btext\/x-component\b/) ||
+      !response.body
+    ) {
       return response;
     }
+
+    if (!response.body?.tee) return response;
 
     const [rscBodyA, rscBodyB] = response.body.tee();
 
@@ -65,13 +66,23 @@ export function defineRemote<ServerContext = unknown>(
 
     const encoder = new TextEncoder();
     const htmlDecoder = new TextDecoder("utf-8");
+    let buffered = "";
+    let foundBootstrap = false;
     const rscTransform = new TransformStream<Uint8Array, Uint8Array>({
       async transform(chunk, controller) {
         controller.enqueue(chunk);
 
         const decoded = htmlDecoder.decode(chunk, { stream: true });
 
-        if (decoded.match(/((<\/)\w+(>))$/)) {
+        if (!foundBootstrap) {
+          buffered += decoded;
+          if (buffered.match(/window\.__rsc_controller/)) {
+            foundBootstrap = true;
+          }
+          return;
+        }
+
+        if (foundBootstrap && decoded.match(/((<\/)\w+(>))$/)) {
           let idx = buffer.indexOf("\n");
           while (idx != -1) {
             const line = buffer.slice(0, idx + 1);

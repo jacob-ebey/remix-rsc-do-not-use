@@ -1,9 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
-import {
-  createFromFetch,
-  encodeReply,
-} from "react-server-dom-webpack/client.browser";
+import { createFromFetch, encodeReply } from "react-server-dom-remix/client";
 
 import { Router } from "./router.client.js";
 
@@ -39,18 +36,18 @@ export function hydrate(target: Document | HTMLElement, args?: HydrateArgs) {
   const getInitialRSCResponse =
     args?.getInitialRSCResponse ?? defaultGetInitialRSCResponse;
 
-  // React.startTransition(() => {
-  const rscResponse = getInitialRSCResponse();
+  React.startTransition(() => {
+    const rscResponse = getInitialRSCResponse();
 
-  const initialChunk = createFromFetch(rscResponse, {
-    callServer,
+    const initialChunk = createFromFetch(rscResponse, {
+      callServer,
+    });
+
+    ReactDOM.hydrateRoot(
+      target,
+      <React.StrictMode>
+        <Router callServer={callServer} initialChunk={initialChunk} />
+      </React.StrictMode>
+    );
   });
-
-  ReactDOM.hydrateRoot(
-    target,
-    <React.StrictMode>
-      <Router callServer={callServer} initialChunk={initialChunk} />
-    </React.StrictMode>
-  );
-  // });
 }

@@ -1,10 +1,7 @@
-/// <reference types="react/experimental" />
 import * as React from "react";
 import type {
-  ActionFunction,
   AgnosticDataIndexRouteObject,
   AgnosticDataNonIndexRouteObject,
-  LoaderFunctionArgs,
   Location,
   Params as RemixParams,
   StaticHandler,
@@ -124,7 +121,7 @@ export interface MixinDefinition<
 }
 
 export interface Mixin<Params extends Record<string, string>> {
-  map(map: (args: MixinMapArgs) => Params): MappedMixin;
+  map(map?: (args: MixinMapArgs) => Params): MappedMixin;
 }
 
 export type ServerRoute = (
@@ -141,6 +138,7 @@ export type ServerRoute = (
 
 interface RouterContextRef {
   current: null | {
+    location: Location;
     matchesToRender: StaticHandlerContext["matches"];
     url: URL;
   };
@@ -159,6 +157,7 @@ export interface RouterProps<
   runtime: typeof ServerRuntime;
   serverContext: ServerContext;
   staticHandler: StaticHandler;
+  onRequestContext(context: unknown): void;
   onResponseReady(status: number): void;
 }
 
@@ -167,11 +166,14 @@ export async function Router({
   request,
   serverContext,
   staticHandler,
+  onRequestContext,
   onResponseReady,
 }: RouterProps) {
   const requestContext = createRequestContext
     ? await createRequestContext({ request, serverContext })
     : undefined;
+
+  onRequestContext?.(requestContext);
 
   const context = await staticHandler.query(request, { requestContext });
 
@@ -186,7 +188,6 @@ export async function Router({
 
   const url = new URL(request.url);
 
-  // TODO: Filter matches based on error boundaries
   let matchesToRender = context.matches;
   if (context.errors) {
     matchesToRender = [];
@@ -210,13 +211,14 @@ export async function Router({
 
   const routerRef = getRouterRef();
   routerRef.current = {
+    location: context.location,
     matchesToRender,
     url,
   };
 
-  const routerServerContext: RouterServerContext = {
+  const routerServerContext = {
     matches: [],
-  };
+  } as RouterServerContext;
 
   for (const match of matchesToRender) {
     routerServerContext.matches.push({
@@ -325,7 +327,7 @@ export async function Router({
 
 function createMixinInstances(
   route: ServerRoute,
-  url: URL,
+  ogURL: URL,
   location,
   mixins: Record<string, MappedMixin>,
   mixinLoaderData?: Record<
@@ -341,24 +343,26 @@ function createMixinInstances(
 
   const instances: Record<string, MixinInstance> = {};
   for (const [key, mixin] of Object.entries(mixins)) {
-    const Form = React.forwardRef<
-      HTMLFormElement,
-      React.FormHTMLAttributes<HTMLFormElement>
-    >((props, ref) => {
+    const url = new URL(ogURL);
+    const Form = (props: React.FormHTMLAttributes<HTMLFormElement>) => {
       let action = props.action;
       const method = (props.method || "GET").toUpperCase();
 
       if (!action) {
         const searchParams = new URLSearchParams();
-        searchParams.set("_mixin", key);
         if (route.index && method === "POST") {
           searchParams.set("index", "");
         }
         action = url.pathname + "?" + searchParams.toString();
       }
 
-      return <form {...props} ref={ref} action={action} />;
-    });
+      const [path, query] = (action as string).split("?", 2);
+      const searchParams = new URLSearchParams(query);
+      searchParams.set("_mixin", key);
+      action = path + "?" + searchParams.toString();
+
+      return <form {...props} action={action} />;
+    };
 
     instances[key] = {
       ...mixinLoaderData?.[key],
@@ -367,7 +371,7 @@ function createMixinInstances(
 
         const error =
           mixinActionData?.[key]?.actionError ||
-          mixinLoaderData?.[key].loaderError;
+          mixinLoaderData?.[key]?.loaderError;
         if (error) {
           if (!mixin.definition.Boundary) {
             throw error;
@@ -377,7 +381,7 @@ function createMixinInstances(
               {...props}
               error={error}
               Form={Form}
-              loaderData={mixinLoaderData[key].loaderData}
+              loaderData={mixinLoaderData[key]?.loaderData}
               location={location}
               params={mixinLoaderData[key].params}
               actionData={mixinActionData?.[key]?.actionData}
@@ -402,17 +406,16 @@ function createMixinInstances(
   return instances;
 }
 
-export function defineMixin<Params extends Record<string, string>>(
-  definition: MixinDefinition<Params>
-): Mixin<Params> {
-  // TODO: Figure out why this isn't working
+export function defineMixin<Params extends string>(
+  definition: MixinDefinition<RemixParams<Params>>
+): Mixin<RemixParams<Params>> {
   const getMixinRef = React.cache(
     (param): { current: null | Promise<unknown> } => ({
       current: null,
     })
   );
   return {
-    map(map) {
+    map(map = () => ({} as any)) {
       return {
         getMixinRef,
         definition,

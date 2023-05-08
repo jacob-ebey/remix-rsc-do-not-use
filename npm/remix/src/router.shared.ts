@@ -13,12 +13,11 @@ export interface ServerMatch {
   route: ServerMatchRoute;
 }
 
-export type RouterServerContext = React.ServerContextJSONValue & {
+export type RouterServerContext = {
   matches: ServerMatch[];
 };
 
-export const ReactRouterServerContext =
-  React.createServerContext<RouterServerContext | null>(
-    "RouterServerContext",
-    null
-  );
+export const ReactRouterServerContext = (React as any).createServerContext(
+  "RouterServerContext",
+  null
+);

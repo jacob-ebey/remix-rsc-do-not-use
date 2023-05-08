@@ -18,13 +18,15 @@ func BundleBrowser(
 	production bool,
 ) (*esbuild.BuildResult, error) {
 	defineMap := make(map[string]string, 1)
+	conditions := []string{"browser", "import", "require", "default"}
+
 	if production {
+		conditions = append([]string{"production"}, conditions...)
 		defineMap["process.env.NODE_ENV"] = "\"production\""
 	} else {
+		conditions = append([]string{"development"}, conditions...)
 		defineMap["process.env.NODE_ENV"] = "\"development\""
 	}
-
-	conditions := []string{"browser", "import", "require", "default"}
 
 	resolver, err := module_graph.NewEnhancedResolver(module_graph.EnhancedResolverOptions{
 		CWD:            workingDirectory,

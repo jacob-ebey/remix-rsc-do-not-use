@@ -1,0 +1,52 @@
+{
+  "name": "react-server-dom-remix",
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "client.d.ts",
+    "client.browser.development.js",
+    "client.browser.production.js",
+    "client.edge.development.js",
+    "client.edge.production.js",
+    "server.d.ts",
+    "server.edge.development.js",
+    "server.edge.production.js",
+    "server.node.development.js",
+    "server.node.production.js"
+  ],
+  "exports": {
+    "./client": {
+      "types": "./client.d.ts",
+      "development": {
+        "browser": "./client.browser.development.js",
+        "default": "./client.edge.development.js"
+      },
+      "browser": "./client.browser.production.js",
+      "default": "./client.edge.production.js"
+    },
+    "./server": {
+      "types": "./server.d.ts",
+      "development": {
+        "worker": "./server.edge.development.js",
+        "workerd": "./server.edge.development.js",
+        "node": "./server.node.development.js",
+        "default": "./server.node.development.js"
+      },
+      "worker": "./server.edge.production.js",
+      "workerd": "./server.edge.production.js",
+      "node": "./server.node.production.js",
+      "default": "./server.node.production.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && publint",
+    "watch": "tsc -w"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-dom": "*"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

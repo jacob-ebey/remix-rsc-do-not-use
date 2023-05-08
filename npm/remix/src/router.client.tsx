@@ -1,14 +1,52 @@
 import * as React from "react";
+import type { Location, Navigation as NavigationRR } from "@remix-run/router";
 import { createBrowserRouter } from "react-router-dom";
-import { createFromFetch } from "react-server-dom-webpack/client.browser";
+import { createFromFetch } from "react-server-dom-remix/client";
+import type { Simplify } from "type-fest";
+
+export type { Location } from "@remix-run/router";
+
 import {
   createStaticRouter,
   type StaticHandlerContext,
 } from "react-router-dom/server.js";
 
+import { ReactRouterServerContext, type ServerMatch } from "./router.shared.js";
+
+export type Navigation = Simplify<NavigationRR & { transitioning: boolean }>;
+
+const ClientRouterContext = React.createContext<{
+  location: Location;
+  navigation: Navigation;
+} | null>(null);
+
+export function useNavigation() {
+  const context = React.useContext(ClientRouterContext);
+  if (!context) {
+    throw new Error("useNavigation must be used within a client <Router />");
+  }
+  return context.navigation;
+}
+
+export function useLocation(): Location {
+  const context = React.useContext(ClientRouterContext);
+  if (!context) {
+    throw new Error("useNavigation must be used within a client <Router />");
+  }
+  return context.location;
+}
+
+export function useMatches(): ServerMatch[] {
+  const context: any = React.use(ReactRouterServerContext);
+  if (!context) {
+    throw new Error("useMatches must be used within a client <Router />");
+  }
+  return context.matches;
+}
+
 export interface RouterProps {
   callServer: (...args: any[]) => Promise<any>;
-  initialChunk: React.Usable<React.ReactElement>;
+  initialChunk: any;
 }
 
 let browserRouter: ReturnType<typeof createBrowserRouter>;
@@ -45,7 +83,7 @@ export function Router({ callServer, initialChunk }: RouterProps) {
           {
             id: "router",
             path: "/*",
-            loader: ({ request }) => {
+            loader: async ({ request }) => {
               if (loaderHandled < actionCount) {
                 loaderHandled = actionCount;
                 return actionData;
@@ -53,7 +91,14 @@ export function Router({ callServer, initialChunk }: RouterProps) {
               const url = new URL(request.url);
               url.searchParams.set("_rsc", "1");
 
-              const rscResponsePromise = fetch(url, request);
+              const rscResponsePromise = fetch(url, {
+                headers: request.headers,
+                method: request.method,
+                mode: "same-origin",
+              });
+
+              const response = await rscResponsePromise;
+              handleRedirects(response);
 
               const chunk = createFromFetch(rscResponsePromise, {
                 callServer,
@@ -85,6 +130,8 @@ export function Router({ callServer, initialChunk }: RouterProps) {
                   : await request.formData();
 
               const rscResponsePromise = fetch(url, init);
+              const rscResponse = await rscResponsePromise;
+              handleRedirects(rscResponse);
 
               const chunk = createFromFetch(rscResponsePromise, {
                 callServer,
@@ -110,11 +157,17 @@ export function Router({ callServer, initialChunk }: RouterProps) {
   const [rscChunk, setRSCChunk] = React.useState(
     () => router.state.loaderData.router.chunk
   );
+  const [location, setLocation] = React.useState(() => router.state.location);
+  const [navigationRR, setNavigation] = React.useState(
+    () => router.state.navigation
+  );
   const [transitioning, startTransition] = React.useTransition();
 
   React.useEffect(() => {
     return router.subscribe((state) => {
+      setNavigation(state.navigation);
       startTransition(() => {
+        setLocation(state.location);
         setRSCChunk(state.loaderData.router.chunk);
       });
     });
@@ -149,7 +202,7 @@ export function Router({ callServer, initialChunk }: RouterProps) {
 
         return router.navigate(url.pathname + url.search, {
           replace,
-          preventScrollReset,
+          state: { preventScrollReset },
           formData,
           formEncType,
           formMethod,
@@ -225,7 +278,7 @@ export function Router({ callServer, initialChunk }: RouterProps) {
           pathname: url.pathname,
           search: url.search,
         },
-        { replace, preventScrollReset }
+        { replace, state: { preventScrollReset } }
       );
     };
 
@@ -259,7 +312,19 @@ export function Router({ callServer, initialChunk }: RouterProps) {
     };
   }, []);
 
-  return React.use(rscChunk) as React.ReactElement;
+  const navigation = React.useMemo<Navigation>(
+    () => ({
+      ...navigationRR,
+      transitioning,
+    }),
+    [navigationRR, transitioning]
+  );
+
+  return (
+    <ClientRouterContext.Provider value={{ location, navigation }}>
+      {React.use(rscChunk) as React.ReactElement}
+    </ClientRouterContext.Provider>
+  );
 }
 
 function prevent(e: Event) {
@@ -267,4 +332,15 @@ function prevent(e: Event) {
   if (e.stopPropagation) e.stopPropagation();
   e.preventDefault();
   return false;
+}
+
+function handleRedirects(response: Response) {
+  const location = response.headers.get("X-Remix-Redirect")!;
+  const status = response.headers.get("X-Remix-Status")!;
+  if (response.status === 204 && location && status) {
+    throw new Response(null, {
+      status: Number.parseInt(status),
+      headers: { Location: location },
+    });
+  }
 }

@@ -1,3 +1,6 @@
+/// <reference types="node" />
+import * as stream from "node:stream";
+
 import * as React from "react";
 import * as RSCServer from "react-server-dom-remix/server";
 import { createStaticHandler } from "@remix-run/router";
@@ -9,8 +12,11 @@ import {
 } from "@remix-run/server-runtime";
 
 import { Router as AsyncRouter, RouterProps } from "./router.js";
-import type { DefineHandlerArgs, Handler } from "./server.shared.js";
-import { isRedirectResponse } from "./server.shared.js";
+import {
+  type DefineHandlerArgs,
+  type Handler,
+  isRedirectResponse,
+} from "./server.shared.js";
 
 export * from "./server.shared.js";
 
@@ -36,7 +42,7 @@ export function defineHandler<
       responseReady = resolve;
     });
 
-    const body: ReadableStream = await RSCServer.renderToReadableStream(
+    const { abort, pipe } = RSCServer.renderToPipeableStream(
       <Router
         createRequestContext={createRequestContext}
         request={request}
@@ -79,8 +85,6 @@ export function defineHandler<
     };
 
     if (thrownResponse) {
-      await body.cancel().catch();
-
       if (isRedirectResponse(thrownResponse)) {
         const headers = new Headers(thrownResponse.headers);
         headers.set(
@@ -89,22 +93,23 @@ export function defineHandler<
         );
         headers.set("X-Remix-Status", thrownResponse.status.toString());
         headers.delete("Location");
-        return new Response(null, {
+        thrownResponse = new Response(null, {
           status: 204,
           headers,
         });
       }
-
       return commitContext(thrownResponse);
     }
 
     if (typeof status !== "number") {
-      await body.cancel().catch();
       throw new Error("Internal Error: status code not set");
     }
 
+    const body = new stream.PassThrough();
+    pipe(body);
+
     return commitContext(
-      new Response(body, {
+      new Response(stream.Readable.toWeb(body) as ReadableStream, {
         status,
         headers: {
           "Content-Type": "text/x-component; charset=utf-8",

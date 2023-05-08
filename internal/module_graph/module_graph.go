@@ -55,6 +55,14 @@ func BuildModuleGraph(workingDirectory string, entryPoints []string, resolver Re
 							return esbuild.OnResolveResult{}, err
 						}
 
+						if resolved == "___external___" {
+							return esbuild.OnResolveResult{
+								Path:        args.Path,
+								External:    true,
+								SideEffects: esbuild.SideEffectsFalse,
+							}, nil
+						}
+
 						return esbuild.OnResolveResult{
 							Path:        resolved,
 							SideEffects: esbuild.SideEffectsTrue,

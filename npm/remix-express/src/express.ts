@@ -52,7 +52,8 @@ export function createClientHandler<ServerContext = unknown>(
     try {
       const request = createRequest(req, res);
       const serverContext = await createServerContext({ req, request, res });
-      const response = await remote(request, serverContext);
+      let response = await remote(request, serverContext);
+
       await sendResponse(res, response);
     } catch (error) {
       next(error);
@@ -62,6 +63,7 @@ export function createClientHandler<ServerContext = unknown>(
 
 function createRequest(req: express.Request, res: express.Response) {
   const url = new URL(`${req.protocol}://${req.get("host")}${req.url}`);
+  url.searchParams.delete("_rsc");
 
   let body: RequestInit["body"] = null;
   if (req.method !== "GET" && req.method !== "HEAD") {

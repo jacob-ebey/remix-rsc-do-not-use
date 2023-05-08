@@ -17,10 +17,15 @@
     },
     "./client": {
       "types": "./dist/client.shared.d.ts",
+      "browser": "./dist/client.browser.js",
       "worker": "./dist/client.edge.js",
       "workerd": "./dist/client.edge.js",
       "node": "./dist/client.node.js",
       "default": "./dist/client.node.js"
+    },
+    "./scroll-restoration": {
+      "types": "./dist/scroll-restoration.d.ts",
+      "default": "./dist/scroll-restoration.js"
     },
     "./server": {
       "types": "./dist/server.shared.d.ts",
@@ -56,19 +61,22 @@
   },
   "dependencies": {
     "@remix-run/router": "^1.6.1",
-    "isbot": "^3.6.10"
+    "@remix-run/server-runtime": "^1.16.0",
+    "isbot": "^3.6.10",
+    "react-server-dom-remix": "*",
+    "type-fest": "^3.10.0"
   },
   "peerDependencies": {
-    "@types/react": "^18",
     "react": "*",
-    "react-dom": "*",
-    "react-server-dom-webpack": "*"
+    "react-dom": "*"
   },
   "optionalDependencies": {
     "@remix-run/dev": "*"
   },
   "devDependencies": {
+    "@types/cookie": "^0.5.1",
     "@types/node": "^18.16.3",
+    "@types/react": "^18.2.6",
     "publint": "^0.1.11",
     "react-router-dom": "^6.11.1",
     "typescript": "^5.0.4"

@@ -135,7 +135,7 @@ export function Layout({ cart, children }) {
                 rel="noopener noreferrer"
                 href="#"
                 title="Email"
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 duration-150 text-gray-50"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-500 hover:bg-slate-600 duration-150 text-gray-50"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -151,7 +151,7 @@ export function Layout({ cart, children }) {
                 rel="noopener noreferrer"
                 href="#"
                 title="Twitter"
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 duration-150 text-gray-50"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-500 hover:bg-slate-600 duration-150 text-gray-50"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +166,7 @@ export function Layout({ cart, children }) {
                 rel="noopener noreferrer"
                 href="#"
                 title="GitHub"
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 duration-150 text-gray-50"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-500 hover:bg-slate-600 duration-150 text-gray-50"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

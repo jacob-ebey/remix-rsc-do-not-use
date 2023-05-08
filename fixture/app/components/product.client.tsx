@@ -16,7 +16,7 @@ export function AddToCartButton({ variantId }) {
         data-testid="add-to-cart-button"
         className={
           "flex items-center space-x-1.5 rounded-lg px-4 py-1.5 text-white duration-100 " +
-          (variantId ? "bg-blue-500 hover:bg-blue-600" : "bg-blue-300")
+          (variantId ? "bg-slate-500 hover:bg-slate-600" : "bg-slate-300")
         }
         type="submit"
         form="add-to-cart"

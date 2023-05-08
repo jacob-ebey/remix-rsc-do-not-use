@@ -35,10 +35,10 @@ export function ProductCard({
         <div className="mt-1 p-2 flex flex-col flex-1">
           <h2 className="text-slate-700">{title}</h2>
           {description && (
-            <p className="mt-1 text-sm text-slate-400">{description}</p>
+            <p className="mt-1 text-sm text-slate-600">{description}</p>
           )}
           <div className="mt-3 flex items-end justify-between flex-1">
-            <p className="text-lg font-bold text-blue-500">
+            <p className="text-lg font-bold text-slate-700">
               {price.amount}
               <small>{price.currencyCode}</small>
             </p>
@@ -94,7 +94,7 @@ export function ProductDetails({
       <div className="mt-1 p-2">
         <h2 className="text-2xl mb-3 text-slate-700">{title}</h2>
         {description && (
-          <p className="my-3 text-lg text-slate-400">{description}</p>
+          <p className="my-3 text-lg text-slate-600">{description}</p>
         )}
         <div className="my-6">
           {(options.length > 1 || options[0].values.length > 1) &&
@@ -126,7 +126,7 @@ export function ProductDetails({
             ))}
         </div>
         <div className="mt-6 flex items-end justify-between">
-          <p className="text-lg font-bold text-blue-500">
+          <p className="text-lg font-bold text-slate-500">
             {price.amount}
             <small>{price.currencyCode}</small>
           </p>

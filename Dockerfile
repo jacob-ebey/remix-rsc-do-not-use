@@ -26,9 +26,11 @@ ADD npm/remix-express/dist ./npm/remix-express/dist
 
 RUN yarn install --frozen-lockfile --production --ignore-platform
 
-FROM deps
+FROM base
 
 WORKDIR /myapp
+
+COPY --from=deps /myapp/node_modules /myapp/node_modules
 
 ADD . ./
 

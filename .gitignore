@@ -3,6 +3,7 @@
 *.log
 dist/
 build/
+public/styles.css
 
 # Node
 node_modules

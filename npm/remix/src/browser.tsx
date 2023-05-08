@@ -16,7 +16,7 @@ export function defaultGetInitialRSCResponse() {
 
 export async function defaultCallServer(id, args) {
   const url = new URL(window.location.href);
-  url.searchParams.set("_action", id);
+  url.searchParams.set("_rsc", id);
   const response = fetch(url, {
     method: "POST",
     body: await encodeReply(args),

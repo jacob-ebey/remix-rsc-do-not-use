@@ -39,7 +39,7 @@ export function createRemoteFetcher(hostname: string): RemoteFetcher {
   return (request) => {
     const url = new URL(request.url);
     url.hostname = hostname;
-    url.searchParams.set("_rsc", "1");
+    url.searchParams.set("_rsc", "");
 
     return fetch(url, request);
   };

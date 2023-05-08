@@ -89,7 +89,7 @@ export function Router({ callServer, initialChunk }: RouterProps) {
                 return actionData;
               }
               const url = new URL(request.url);
-              url.searchParams.set("_rsc", "1");
+              url.searchParams.set("_rsc", "");
 
               const rscResponsePromise = fetch(url, {
                 headers: request.headers,
@@ -111,7 +111,7 @@ export function Router({ callServer, initialChunk }: RouterProps) {
             action: async ({ request }) => {
               actionCount++;
               const url = new URL(request.url);
-              url.searchParams.set("_rsc", "1");
+              url.searchParams.set("_rsc", "");
 
               const init: RequestInit = {
                 body: request.body,

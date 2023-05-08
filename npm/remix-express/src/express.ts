@@ -25,7 +25,7 @@ export function createServerHandler<ServerContext = unknown>(
 ): express.Handler {
   return async (req, res, next) => {
     try {
-      if (!req.query["_rsc"]) {
+      if (typeof req.query["_rsc"] === "undefined") {
         next();
         return;
       }
@@ -63,7 +63,6 @@ export function createClientHandler<ServerContext = unknown>(
 
 function createRequest(req: express.Request, res: express.Response) {
   const url = new URL(`${req.protocol}://${req.get("host")}${req.url}`);
-  url.searchParams.delete("_rsc");
 
   let body: RequestInit["body"] = null;
   if (req.method !== "GET" && req.method !== "HEAD") {

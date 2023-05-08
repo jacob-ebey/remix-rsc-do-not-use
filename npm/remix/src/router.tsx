@@ -164,6 +164,7 @@ export interface RouterProps<
 export async function Router({
   createRequestContext,
   request,
+  runtime,
   serverContext,
   staticHandler,
   onRequestContext,
@@ -175,6 +176,24 @@ export async function Router({
 
   onRequestContext?.(requestContext);
 
+  const url = new URL(request.url);
+  // const rscAction = url.searchParams.get("_rsc");
+  // if (rscAction) {
+  //   const [id, key] = rscAction.split("#", 2);
+  //   const mod = await runtime.importById(id);
+  //   const action = mod[key];
+  //   console.log(rscAction);
+
+  //   onResponseReady(200);
+
+  //   const actionResult = await action.apply(null, request);
+  //   request = new Request(request.url, {
+  //     method: "GET",
+  //     headers: request.headers,
+  //     signal: request.signal,
+  //   });
+  // }
+
   const context = await staticHandler.query(request, { requestContext });
 
   const statusCode =
@@ -185,8 +204,6 @@ export async function Router({
   }
 
   onResponseReady(statusCode);
-
-  const url = new URL(request.url);
 
   let matchesToRender = context.matches;
   if (context.errors) {

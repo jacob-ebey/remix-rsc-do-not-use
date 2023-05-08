@@ -1,7 +1,8 @@
 "use server";
 
-export async function loadItems() {}
-
-export { loadItems as test };
-
-export default async function loadItems2() {}
+export async function loadItems() {
+  return [
+    { id: 1, name: "Item 1" },
+    { id: 2, name: "Item 2" },
+  ];
+}

@@ -77,7 +77,10 @@ export function ProductDetails({
     <article className="rounded-xl w-full bg-white p-3 md:gap-5 md:grid md:grid-cols-2">
       <div className="relative flex overflow-hidden rounded-xl">
         <React.Suspense
-          fallback={<div className="w-full h-full bg-gray-200" />}
+          key={imageSrc}
+          fallback={
+            <div className="w-full h-full bg-gray-200 aspect-[3.5/4]" />
+          }
         >
           <ShopifyImage
             alt="Hotel Photo"

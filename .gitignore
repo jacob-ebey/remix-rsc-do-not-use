@@ -8,6 +8,7 @@ public/styles.css
 # Node
 node_modules
 *.js
+!npm/react-server-dom-remix/*.js
 !node.*.js
 *.map
 
